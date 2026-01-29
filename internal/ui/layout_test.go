@@ -27,11 +27,11 @@ func TestCalculateLayoutNarrow(t *testing.T) {
 	if layout.Name <= 0 {
 		t.Fatalf("expected name width > 0, got %d", layout.Name)
 	}
-	if layout.Status != 12 {
-		t.Fatalf("expected status width 12, got %d", layout.Status)
+	if layout.Status != 8 {
+		t.Fatalf("expected status width 8, got %d", layout.Status)
 	}
-	if layout.Sync != 8 {
-		t.Fatalf("expected sync width 8, got %d", layout.Sync)
+	if layout.Sync != 6 {
+		t.Fatalf("expected sync width 6, got %d", layout.Sync)
 	}
 }
 

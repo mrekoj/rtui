@@ -33,13 +33,14 @@ type reposLoadedMsg struct {
 type errMsg error
 type statusMsg string
 type pullDoneMsg string
+type commitDoneMsg string
+type pushDoneMsg string
 
 type ViewMode int
 
 const (
 	ModeNormal ViewMode = iota
 	ModeAddPath
-	ModeConfirmStage
 	ModeCommitInput
 	ModeConfirmPull
 	ModeHelp

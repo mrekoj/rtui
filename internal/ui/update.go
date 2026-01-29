@@ -34,8 +34,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case pullDoneMsg:
 		m.statusMsg = "Pulled " + string(msg)
-		m.mode = ModeConfirmStage
-		return m, nil
+		m.mode = ModeNormal
+		return m, m.loadRepos()
+	case commitDoneMsg:
+		m.statusMsg = "Committed " + string(msg)
+		return m, m.loadRepos()
+	case pushDoneMsg:
+		m.statusMsg = "Pushed " + string(msg)
+		return m, m.loadRepos()
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -47,8 +53,6 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.mode {
 	case ModeAddPath:
 		return m.handleAddPath(msg)
-	case ModeConfirmStage:
-		return m.handleConfirmStage(msg)
 	case ModeCommitInput:
 		return m.handleCommitInput(msg)
 	case ModeConfirmPull:
@@ -80,6 +84,19 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.addPathInput = ""
 	case "c":
 		if repo := m.currentRepo(); repo != nil {
+			if repo.HasConflict {
+				m.statusMsg = "Cannot commit: repo has conflicts"
+				return m, nil
+			}
+			if !repo.IsDirty() {
+				m.statusMsg = "Nothing to commit"
+				return m, nil
+			}
+			m.mode = ModeCommitInput
+			m.commitMsg = ""
+		}
+	case "o":
+		if repo := m.currentRepo(); repo != nil {
 			_ = git.OpenInEditor(repo.Path, m.config.Editor)
 			m.statusMsg = "Opened " + repo.Name + " in " + m.config.Editor
 		}
@@ -99,15 +116,17 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.statusMsg = "Cannot push: repo has conflicts"
 				return m, nil
 			}
-			if !repo.IsDirty() {
-				m.statusMsg = "Nothing to commit"
-				return m, nil
-			}
 			if repo.Behind > 0 {
 				m.mode = ModeConfirmPull
 				return m, nil
 			}
-			m.mode = ModeConfirmStage
+			m.statusMsg = "Pushing..."
+			return m, func() tea.Msg {
+				if err := git.Push(repo.Path); err != nil {
+					return errMsg(err)
+				}
+				return pushDoneMsg(repo.Name)
+			}
 		}
 	case "?":
 		m.mode = ModeHelp
@@ -156,18 +175,6 @@ func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleConfirmStage(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y":
-		m.mode = ModeCommitInput
-		m.commitMsg = ""
-	case "n", "c", "esc":
-		m.mode = ModeNormal
-		m.statusMsg = "Commit canceled"
-	}
-	return m, nil
-}
-
 func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
@@ -182,15 +189,15 @@ func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = ModeNormal
 			return m, nil
 		}
-		m.statusMsg = "Pushing..."
+		m.statusMsg = "Committing..."
 		m.mode = ModeNormal
 		commitMsg := m.commitMsg
 		m.commitMsg = ""
 		return m, func() tea.Msg {
-			if err := git.CommitAndPush(repo.Path, commitMsg); err != nil {
+			if err := git.CommitAll(repo.Path, commitMsg); err != nil {
 				return errMsg(err)
 			}
-			return statusMsg("Pushed to " + repo.Name)
+			return commitDoneMsg(repo.Name)
 		}
 	case "backspace":
 		if len(m.commitMsg) > 0 {
@@ -220,10 +227,9 @@ func (m Model) handleConfirmPull(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return pullDoneMsg(repo.Name)
 			}
 		}
-	case "n":
-		m.mode = ModeConfirmStage
-	case "c", "esc":
+	case "n", "c", "esc":
 		m.mode = ModeNormal
+		m.statusMsg = "Pull canceled"
 	}
 	return m, nil
 }

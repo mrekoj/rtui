@@ -127,8 +127,8 @@ func getAheadBehind(path string) (ahead, behind int) {
 	return
 }
 
-// CommitAndPush stages all, commits, and pushes (call after user confirms stage-all).
-func CommitAndPush(path, message string) error {
+// CommitAll stages all changes (including untracked) and commits.
+func CommitAll(path, message string) error {
 	addCmd := exec.Command("git", "add", "-A")
 	addCmd.Dir = path
 	if err := addCmd.Run(); err != nil {
@@ -141,9 +141,14 @@ func CommitAndPush(path, message string) error {
 		return err
 	}
 
-	pushCmd := exec.Command("git", "push")
-	pushCmd.Dir = path
-	return pushCmd.Run()
+	return nil
+}
+
+// Push runs git push.
+func Push(path string) error {
+	cmd := exec.Command("git", "push")
+	cmd.Dir = path
+	return cmd.Run()
 }
 
 func Pull(path string) error {

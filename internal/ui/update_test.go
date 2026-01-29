@@ -79,32 +79,14 @@ func TestAddPathDuplicate(t *testing.T) {
 	}
 }
 
-func TestConfirmStageFlow(t *testing.T) {
-	m := NewModel(config.DefaultConfig())
-	m.mode = ModeConfirmStage
-
-	m2, _ := m.handleConfirmStage(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
-	m = m2.(Model)
-	if m.mode != ModeCommitInput {
-		t.Fatalf("expected ModeCommitInput, got %v", m.mode)
-	}
-
-	m.mode = ModeConfirmStage
-	m2, _ = m.handleConfirmStage(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
-	m = m2.(Model)
-	if m.mode != ModeNormal {
-		t.Fatalf("expected ModeNormal, got %v", m.mode)
-	}
-}
-
 func TestConfirmPullNo(t *testing.T) {
 	m := NewModel(config.DefaultConfig())
 	m.mode = ModeConfirmPull
 
 	m2, _ := m.handleConfirmPull(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
 	m = m2.(Model)
-	if m.mode != ModeConfirmStage {
-		t.Fatalf("expected ModeConfirmStage, got %v", m.mode)
+	if m.mode != ModeNormal {
+		t.Fatalf("expected ModeNormal, got %v", m.mode)
 	}
 }
 

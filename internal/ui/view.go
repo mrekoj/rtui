@@ -19,13 +19,15 @@ func (m Model) calculateLayout() Layout {
 	w := m.width
 
 	cursorW := 2
-	syncW := 8
-	statusW := 12
-	gaps := 4
+	syncW := 6
+	statusW := 8
+	gaps := 9
 
 	remaining := w - cursorW - syncW - statusW - gaps
 
 	if w < 40 {
+		gaps = 6
+		remaining = w - cursorW - syncW - statusW - gaps
 		return Layout{
 			Name:   max(remaining-2, 8),
 			Branch: 0,
@@ -71,10 +73,6 @@ func (m Model) View() string {
 		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
 		b.WriteString(m.renderCommitInput())
-	case ModeConfirmStage:
-		b.WriteString(m.renderRepoList())
-		b.WriteString("\n")
-		b.WriteString(m.renderStageConfirm())
 	case ModeConfirmPull:
 		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
@@ -113,6 +111,11 @@ func (m Model) renderRepoList() string {
 
 	layout := m.calculateLayout()
 
+	b.WriteString(m.renderRepoHeader(layout))
+	b.WriteString("\n")
+	b.WriteString(strings.Repeat("─", m.width))
+	b.WriteString("\n")
+
 	for i, repo := range repos {
 		line := m.renderRepoLine(repo, i == m.cursor, layout)
 		b.WriteString(line)
@@ -122,20 +125,41 @@ func (m Model) renderRepoList() string {
 	return b.String()
 }
 
+func (m Model) renderRepoHeader(layout Layout) string {
+	cursor := "  "
+	name := padRight("Name", layout.Name)
+	status := padRight("Status", layout.Status)
+	sync := padRight("Sync", layout.Sync)
+
+	var branch string
+	if layout.Branch > 0 {
+		branch = padRight("Branch", layout.Branch)
+	}
+
+	var line string
+	if layout.Branch > 0 {
+		line = cursor + name + " | " + branch + " | " + status + " | " + sync
+	} else {
+		line = cursor + name + " | " + status + " | " + sync
+	}
+
+	return footerStyle.Render(line)
+}
+
 func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) string {
 	cursor := "  "
 	if isCursor {
 		cursor = "→ "
 	}
 
-	name := fmt.Sprintf("%-*s", layout.Name, truncate(repo.Name, layout.Name))
+	name := padRight(truncate(repo.Name, layout.Name), layout.Name)
 	if isCursor {
 		name = selectedRepoStyle.Render(name)
 	}
 
 	var branch string
 	if layout.Branch > 0 {
-		branch = fmt.Sprintf("%-*s", layout.Branch, truncate(repo.Branch, layout.Branch))
+		branch = padRight(truncate(repo.Branch, layout.Branch), layout.Branch)
 		if isCursor {
 			branch = selectedRepoStyle.Render(branch)
 		}
@@ -158,7 +182,7 @@ func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) strin
 		status = stagedStyle.Render("✓")
 	}
 
-	statusPadded := fmt.Sprintf("%-*s", layout.Status, status)
+	statusPadded := padRight(status, layout.Status)
 
 	var sync string
 	if repo.HasConflict {
@@ -171,12 +195,16 @@ func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) strin
 			sync += behindStyle.Render(fmt.Sprintf("↓%d", repo.Behind))
 		}
 	}
+	if strings.TrimSpace(sync) == "" {
+		sync = footerStyle.Render("-")
+	}
+	sync = padRight(sync, layout.Sync)
 
 	var line string
 	if layout.Branch > 0 {
-		line = cursor + name + " " + branch + " " + statusPadded + " " + sync
+		line = cursor + name + " | " + branch + " | " + statusPadded + " | " + sync
 	} else {
-		line = cursor + name + " " + statusPadded + " " + sync
+		line = cursor + name + " | " + statusPadded + " | " + sync
 	}
 
 	if repo.IsDirty() {
@@ -253,7 +281,7 @@ func (m Model) renderAddPath() string {
 
 func (m Model) renderCommitInput() string {
 	var b strings.Builder
-	b.WriteString("Commit message:\n")
+	b.WriteString("Commit message (stages all):\n")
 
 	inputW := min(m.width-4, 60)
 	input := m.commitMsg + "█"
@@ -265,17 +293,6 @@ func (m Model) renderCommitInput() string {
 	b.WriteString("\n")
 	b.WriteString(footerStyle.Render("[Enter] commit  [Esc] cancel"))
 	return b.String()
-}
-
-func (m Model) renderStageConfirm() string {
-	repo := m.currentRepo()
-	if repo == nil {
-		return ""
-	}
-
-	msg := "Stage all changes and continue?"
-	boxW := min(m.width-4, 50)
-	return boxStyle.Width(boxW).Render(msg + "\n\n[y]es  [n]o  [c]ancel")
 }
 
 func (m Model) renderPullConfirm() string {
@@ -298,8 +315,9 @@ Navigation
 
 Actions
   a       Add path
-  c       Open in editor
-  p       Commit + Push (prompts)
+  c       Commit (stages all)
+  o       Open in editor
+  p       Push
   f       Fetch all
   r       Refresh
 
@@ -317,9 +335,9 @@ Press any key to close...`
 }
 
 func (m Model) renderFooter() string {
-	actions := "[a]dd path  [c]ode  [p]ush  [r]efresh  [?]help"
+	actions := "[a]dd path  [c]ommit  [o]pen  [p]ush  [r]efresh  [?]help"
 	if m.width < 50 {
-		actions = "a:add c:code p:push r:ref ?:help"
+		actions = "a:add c:com o:open p:push r:ref ?:help"
 	}
 
 	status := m.statusMsg
@@ -351,6 +369,14 @@ func padToBottom(height int, body, footer string) string {
 	}
 	gap := height - len(lines) - 1
 	return "\n" + strings.Repeat("\n", gap) + footer
+}
+
+func padRight(s string, width int) string {
+	w := lipgloss.Width(s)
+	if w >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-w)
 }
 
 func truncate(s string, maxW int) string {

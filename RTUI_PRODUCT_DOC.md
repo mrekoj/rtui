@@ -32,7 +32,7 @@ Developers managing multiple git repos (microservices, related projects) waste t
 A single TUI dashboard that:
 - Shows all repos at a glance (name, branch, dirty status)
 - Shows ahead/behind remote counts
-- Allows quick commit+push without leaving the dashboard
+- Allows quick commit and push without leaving the dashboard
 - Opens repos in your editor with one keypress
 
 ### Target User
@@ -191,9 +191,10 @@ func (m model) View() string {
 │                                                              │
 │  config.Load() ──► git.ScanRepos() ──► ui.Model ──► View()  │
 │                                                              │
+│  User presses 'c' ──► Update() ──► commit input              │
+│                                └─► git.CommitAll()          │
 │  User presses 'p' ──► Update() ──► confirm pull (if behind) │
-│                                └─► confirm stage all        │
-│                                └─► git.CommitAndPush()      │
+│                                └─► git.Push()               │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -282,7 +283,6 @@ const (
     ModeNormal ViewMode = iota
     ModeAddPath
     ModeCommitInput
-    ModeConfirmStage
     ModeConfirmPull
     ModeHelp
 )
@@ -687,8 +687,8 @@ func getAheadBehind(path string) (ahead, behind int) {
     return
 }
 
-// CommitAndPush stages all, commits, and pushes (call after user confirms stage-all)
-func CommitAndPush(path, message string) error {
+// CommitAll stages all changes (including untracked) and commits.
+func CommitAll(path, message string) error {
     // git add -A
     addCmd := exec.Command("git", "add", "-A")
     addCmd.Dir = path
@@ -703,10 +703,14 @@ func CommitAndPush(path, message string) error {
         return err
     }
 
-    // git push
-    pushCmd := exec.Command("git", "push")
-    pushCmd.Dir = path
-    return pushCmd.Run()
+    return nil
+}
+
+// Push runs git push.
+func Push(path string) error {
+    cmd := exec.Command("git", "push")
+    cmd.Dir = path
+    return cmd.Run()
 }
 
 // Pull runs git pull
@@ -841,7 +845,6 @@ const (
     ModeNormal ViewMode = iota
     ModeAddPath
     ModeCommitInput
-    ModeConfirmStage
     ModeConfirmPull
     ModeHelp
 )
@@ -871,6 +874,8 @@ type tickMsg time.Time
 type statusMsg string
 type errMsg error
 type pullDoneMsg string
+type commitDoneMsg string
+type pushDoneMsg string
 
 func NewModel(cfg config.Config) Model {
     return Model{
@@ -989,8 +994,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
     // Pull done
     case pullDoneMsg:
         m.statusMsg = "Pulled " + string(msg)
-        m.mode = ModeConfirmStage
-        return m, nil
+        m.mode = ModeNormal
+        return m, m.loadRepos()
+
+    // Commit done
+    case commitDoneMsg:
+        m.statusMsg = "Committed " + string(msg)
+        return m, m.loadRepos()
+
+    // Push done
+    case pushDoneMsg:
+        m.statusMsg = "Pushed " + string(msg)
+        return m, m.loadRepos()
 
     // Keyboard
     case tea.KeyMsg:
@@ -1007,8 +1022,6 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
         return m.handleAddPath(msg)
     case ModeCommitInput:
         return m.handleCommitInput(msg)
-    case ModeConfirmStage:
-        return m.handleConfirmStage(msg)
     case ModeHelp:
         return m.handleHelp(msg)
     case ModeConfirmPull:
@@ -1038,29 +1051,46 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
         m.mode = ModeAddPath
         m.addPathInput = ""
 
-    // Open in editor
+    // Commit
     case "c":
         if repo := m.currentRepo(); repo != nil {
-            git.OpenInEditor(repo.Path, m.config.Editor)
-            m.statusMsg = "Opened " + repo.Name + " in " + m.config.Editor
-        }
-
-    // Commit + Push
-    case "p":
-        if repo := m.currentRepo(); repo != nil {
             if repo.HasConflict {
-                m.statusMsg = "Cannot push: repo has conflicts"
+                m.statusMsg = "Cannot commit: repo has conflicts"
                 return m, nil
             }
             if !repo.IsDirty() {
                 m.statusMsg = "Nothing to commit"
                 return m, nil
             }
+            m.mode = ModeCommitInput
+            m.commitMsg = ""
+        }
+
+    // Open in editor
+    case "o":
+        if repo := m.currentRepo(); repo != nil {
+            git.OpenInEditor(repo.Path, m.config.Editor)
+            m.statusMsg = "Opened " + repo.Name + " in " + m.config.Editor
+        }
+
+    // Push
+    case "p":
+        if repo := m.currentRepo(); repo != nil {
+            if repo.HasConflict {
+                m.statusMsg = "Cannot push: repo has conflicts"
+                return m, nil
+            }
             if repo.Behind > 0 {
                 m.mode = ModeConfirmPull
                 return m, nil
             }
-            m.mode = ModeConfirmStage
+            m.statusMsg = "Pushing..."
+            return m, func() tea.Msg {
+                if err := git.Push(repo.Path); err != nil {
+                    return errMsg(err)
+                }
+                return pushDoneMsg(repo.Name)
+            }
         }
 
     // Refresh
@@ -1109,16 +1139,16 @@ func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
             return m, nil
         }
 
-        m.statusMsg = "Pushing..."
+        m.statusMsg = "Committing..."
         m.mode = ModeNormal
         commitMsg := m.commitMsg
         m.commitMsg = ""
 
         return m, func() tea.Msg {
-            if err := git.CommitAndPush(repo.Path, commitMsg); err != nil {
+            if err := git.CommitAll(repo.Path, commitMsg); err != nil {
                 return errMsg(err)
             }
-            return statusMsg("Pushed to " + repo.Name)
+            return commitDoneMsg(repo.Name)
         }
     case "backspace":
         if len(m.commitMsg) > 0 {
@@ -1164,18 +1194,6 @@ func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
     return m, nil
 }
 
-func (m Model) handleConfirmStage(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-    switch msg.String() {
-    case "y":
-        m.mode = ModeCommitInput
-        m.commitMsg = ""
-    case "n", "c", "esc":
-        m.mode = ModeNormal
-        m.statusMsg = "Commit canceled"
-    }
-    return m, nil
-}
-
 func (m Model) handleConfirmPull(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
     switch msg.String() {
     case "y":
@@ -1190,10 +1208,9 @@ func (m Model) handleConfirmPull(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
                 return pullDoneMsg(repo.Name)
             }
         }
-    case "n":
-        m.mode = ModeConfirmStage
-    case "c", "esc":
+    case "n", "c", "esc":
         m.mode = ModeNormal
+        m.statusMsg = "Pull canceled"
     }
     return m, nil
 }
@@ -1274,10 +1291,6 @@ func (m Model) View() string {
 
     var b strings.Builder
 
-    // Header
-    b.WriteString(m.renderHeader())
-    b.WriteString("\n")
-
     // Main content based on mode
     switch m.mode {
     case ModeHelp:
@@ -1290,10 +1303,6 @@ func (m Model) View() string {
         b.WriteString(m.renderRepoList())
         b.WriteString("\n")
         b.WriteString(m.renderCommitInput())
-    case ModeConfirmStage:
-        b.WriteString(m.renderRepoList())
-        b.WriteString("\n")
-        b.WriteString(m.renderStageConfirm())
     case ModeConfirmPull:
         b.WriteString(m.renderRepoList())
         b.WriteString("\n")
@@ -1311,26 +1320,6 @@ func (m Model) View() string {
     b.WriteString(m.renderFooter())
 
     return b.String()
-}
-
-func (m Model) renderHeader() string {
-    title := titleStyle.Render("● RTUI")
-    hints := footerStyle.Render("[r]fresh  [q]uit")
-
-    // Right-align hints dynamically
-    titleW := lipgloss.Width(title)
-    hintsW := lipgloss.Width(hints)
-    gap := m.width - titleW - hintsW
-
-    if gap < 1 {
-        // Terminal too narrow, stack vertically or truncate
-        if m.width < 30 {
-            return title
-        }
-        gap = 1
-    }
-
-    return title + strings.Repeat(" ", gap) + hints
 }
 
 func (m Model) renderRepoList() string {
@@ -1492,7 +1481,7 @@ func (m Model) renderChangesPanel() string {
 
 func (m Model) renderCommitInput() string {
     var b strings.Builder
-    b.WriteString("Commit message:\n")
+    b.WriteString("Commit message (stages all):\n")
 
     // Input box adapts to terminal width
     inputW := min(m.width-4, 60)
@@ -1519,17 +1508,6 @@ func (m Model) renderAddPath() string {
     return boxStyle.Width(boxW).Render(body)
 }
 
-func (m Model) renderStageConfirm() string {
-    repo := m.currentRepo()
-    if repo == nil {
-        return ""
-    }
-
-    msg := "Stage all changes and continue?"
-    boxW := min(m.width-4, 50)
-    return boxStyle.Width(boxW).Render(msg + "\n\n[y]es  [n]o  [c]ancel")
-}
-
 func (m Model) renderPullConfirm() string {
     repo := m.currentRepo()
     if repo == nil {
@@ -1550,8 +1528,9 @@ Navigation
 
 Actions
   a       Add path
-  c       Open in editor
-  p       Commit + Push (prompts)
+  c       Commit (stages all)
+  o       Open in editor
+  p       Push
   f       Fetch all
   r       Refresh
 
@@ -1571,11 +1550,11 @@ Press any key to close...`
 
 func (m Model) renderFooter() string {
     // Left: action hints
-    actions := "[a]dd path  [c]ode  [p]ush  [r]efresh  [?]help"
+    actions := "[a]dd path  [c]ommit  [o]pen  [p]ush  [r]efresh  [?]help"
 
     // Compact mode: shorter hints
     if m.width < 50 {
-        actions = "a:add c:code p:push r:ref ?:help"
+        actions = "a:add c:com o:open p:push r:ref ?:help"
     }
 
     // Right: status message
@@ -1876,7 +1855,7 @@ Commands used internally:
 | `git pull` | [git-pull](https://git-scm.com/docs/git-pull) | Fetch and merge |
 | `git fetch --all` | [git-fetch](https://git-scm.com/docs/git-fetch) | Fetch all remotes |
 
-Note: `git add -A` is only run after the user confirms stage-all.
+Note: `git add -A` runs automatically when the user commits.
 
 ```bash
 # Get status (parseable)
@@ -1924,8 +1903,9 @@ git fetch --all
 | `j` / `↓` | Next repo | Normal |
 | `k` / `↑` | Previous repo | Normal |
 | `a` | Add repo path | Normal |
-| `c` | Open repo in editor | Normal |
-| `p` | Start commit+push flow | Normal |
+| `c` | Commit (stages all) | Normal |
+| `o` | Open repo in editor | Normal |
+| `p` | Push | Normal |
 | `f` | Fetch all remotes | Normal |
 | `r` | Refresh status | Normal |
 | `d` | Toggle dirty-only filter | Normal |
@@ -1933,9 +1913,6 @@ git fetch --all
 | `q` | Quit | Normal |
 | `Enter` | Confirm commit | Commit Input |
 | `Esc` | Cancel | Commit Input |
-| `y` | Yes (stage all) | Confirm Stage |
-| `n` | No (cancel commit) | Confirm Stage |
-| `c` | Cancel | Confirm Stage |
 | `y` | Yes (pull) | Confirm Pull |
 | `n` | No (skip pull) | Confirm Pull |
 | `c` | Cancel | Confirm Pull |
