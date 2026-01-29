@@ -14,8 +14,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, nil
 	case reposLoadedMsg:
-		m.repos = msg
+		m.repos = msg.repos
 		m.loading = false
+		if msg.usedCWD && msg.cwd != "" {
+			m.statusMsg = "Scanning CWD: " + msg.cwd
+		}
 		return m, nil
 	case statusMsg:
 		m.statusMsg = string(msg)

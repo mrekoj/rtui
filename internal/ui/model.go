@@ -25,7 +25,11 @@ type Model struct {
 }
 
 // Messages
-type reposLoadedMsg []git.Repo
+type reposLoadedMsg struct {
+	repos   []git.Repo
+	usedCWD bool
+	cwd     string
+}
 type errMsg error
 type statusMsg string
 type pullDoneMsg string
@@ -56,13 +60,17 @@ func (m Model) Init() tea.Cmd {
 func (m Model) loadRepos() tea.Cmd {
 	return func() tea.Msg {
 		paths := m.config.Paths
+		usedCWD := false
+		cwd := ""
 		if len(paths) == 0 {
 			if cwd, err := os.Getwd(); err == nil {
 				paths = []string{cwd}
+				usedCWD = true
+				cwd = cwd
 			}
 		}
 		repos := git.ScanRepos(paths, m.config.ScanDepth)
-		return reposLoadedMsg(repos)
+		return reposLoadedMsg{repos: repos, usedCWD: usedCWD, cwd: cwd}
 	}
 }
 

@@ -5,6 +5,12 @@
 ## 1. Quick Start (Automated)
 
 ```bash
+# Phase scripts
+scripts/phase1_tests.sh
+scripts/phase2_tests.sh
+scripts/phase3_tests.sh
+scripts/phase4_tests.sh
+
 # Run all tests
 GOFLAGS="-count=1" go test ./...
 

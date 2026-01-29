@@ -1,31 +1,34 @@
 Goal (incl. success criteria):
-- Implement RTUI_PHASES.md; Phase 3 completed with report + tests.
+- Complete Phase 4 hardening + polish + expanded tests per RTUI_PHASES.md.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
 - Each phase completes only with report + tests/scripts.
 
 Key decisions:
-- Phase 3 completed per plan (add-path, commit flow, prompts, fetch/refresh, help, filter).
+- Phase 4 completed per plan.
 
 State:
   Done:
-  - Phase 1: scaffold + config + git CLI core + tests + report.
-  - Phase 2: UI shell + layout + tests + report.
-  - Phase 3: user flows + tests + report.
+  - Phase 1–4 completed, tests and reports created.
+  - Added git integration tests, phase4 scripts, smoke script.
+  - Updated RTUI_TESTING.md and RTUI_PRODUCT_DOC.md for CWD banner behavior.
   Now:
-  - Await instruction to start Phase 4.
+  - Await commit/push instruction.
   Next:
-  - Phase 4: hardening + polish + expanded tests.
+  - None.
 
 Open questions (UNCONFIRMED if needed):
-- UNCONFIRMED: CI environment preference for running tests.
+- None.
 
 Working set (files/ids/commands):
+- internal/git/git.go
+- internal/git/git_integration_test.go
+- internal/ui/model.go
 - internal/ui/update.go
-- internal/ui/view.go
-- internal/ui/styles.go
-- internal/ui/update_test.go
-- scripts/phase3_tests.sh
-- reports/PHASE-3.md
+- scripts/smoke.sh
+- scripts/phase4_tests.sh
+- reports/PHASE-4.md
+- RTUI_TESTING.md
+- RTUI_PRODUCT_DOC.md
 - CONTINUITY.md

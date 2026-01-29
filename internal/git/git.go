@@ -211,10 +211,21 @@ func isConflict(code string) bool {
 }
 
 func gitOutput(path string, args ...string) (string, error) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = path
+	cmd := gitCmd(path, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
 	return out.String(), err
+}
+
+func gitCmd(path string, args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = path
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=rtui",
+		"GIT_AUTHOR_EMAIL=rtui@example.com",
+		"GIT_COMMITTER_NAME=rtui",
+		"GIT_COMMITTER_EMAIL=rtui@example.com",
+	)
+	return cmd
 }

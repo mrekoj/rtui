@@ -18,6 +18,9 @@
 # Logs
 *.log
 
+# Local build artifacts
+rtui
+
 # OS / editor
 .DS_Store
 .idea/
