@@ -1,36 +1,31 @@
 Goal (incl. success criteria):
-- Implement RTUI_PHASES.md; Phase 2 completed and docs synced; commit and push changes.
+- Implement RTUI_PHASES.md; Phase 3 completed with report + tests.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
 - Each phase completes only with report + tests/scripts.
 
 Key decisions:
-- Phase 2 completed per plan (UI shell + layout).
+- Phase 3 completed per plan (add-path, commit flow, prompts, fetch/refresh, help, filter).
 
 State:
   Done:
   - Phase 1: scaffold + config + git CLI core + tests + report.
   - Phase 2: UI shell + layout + tests + report.
-  - Synced RTUI_PRODUCT_DOC.md model snippet with CWD fallback.
+  - Phase 3: user flows + tests + report.
   Now:
-  - Commit and push Phase 1-2 implementation and reports/scripts.
+  - Await instruction to start Phase 4.
   Next:
-  - Phase 3: user flows (add-path, commit flow, prompts) + flow tests.
+  - Phase 4: hardening + polish + expanded tests.
 
 Open questions (UNCONFIRMED if needed):
 - UNCONFIRMED: CI environment preference for running tests.
 
 Working set (files/ids/commands):
-- go.mod, go.sum
-- cmd/rtui/main.go
-- internal/config/config.go
-- internal/git/git.go
-- internal/ui/*.go
-- internal/ui/layout_test.go
-- scripts/phase1_tests.sh
-- scripts/phase2_tests.sh
-- reports/PHASE-1.md
-- reports/PHASE-2.md
-- RTUI_PRODUCT_DOC.md
+- internal/ui/update.go
+- internal/ui/view.go
+- internal/ui/styles.go
+- internal/ui/update_test.go
+- scripts/phase3_tests.sh
+- reports/PHASE-3.md
 - CONTINUITY.md

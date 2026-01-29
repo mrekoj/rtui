@@ -63,10 +63,31 @@ func (m Model) View() string {
 	b.WriteString(m.renderHeader())
 	b.WriteString("\n")
 
-	b.WriteString(m.renderRepoList())
-	if len(m.visibleRepos()) > 0 && m.height >= 15 {
+	switch m.mode {
+	case ModeHelp:
+		b.WriteString(m.renderHelp())
+	case ModeAddPath:
+		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
-		b.WriteString(m.renderChangesPanel())
+		b.WriteString(m.renderAddPath())
+	case ModeCommitInput:
+		b.WriteString(m.renderRepoList())
+		b.WriteString("\n")
+		b.WriteString(m.renderCommitInput())
+	case ModeConfirmStage:
+		b.WriteString(m.renderRepoList())
+		b.WriteString("\n")
+		b.WriteString(m.renderStageConfirm())
+	case ModeConfirmPull:
+		b.WriteString(m.renderRepoList())
+		b.WriteString("\n")
+		b.WriteString(m.renderPullConfirm())
+	default:
+		b.WriteString(m.renderRepoList())
+		if len(m.visibleRepos()) > 0 && m.height >= 15 {
+			b.WriteString("\n")
+			b.WriteString(m.renderChangesPanel())
+		}
 	}
 
 	b.WriteString("\n")
@@ -97,6 +118,9 @@ func (m Model) renderRepoList() string {
 	var b strings.Builder
 
 	header := "REPOSITORIES"
+	if m.filterDirty {
+		header += " (dirty only)"
+	}
 	b.WriteString(sectionTitleStyle.Render(header))
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("─", m.width))
@@ -182,11 +206,10 @@ func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) strin
 }
 
 func (m Model) renderChangesPanel() string {
-	repos := m.visibleRepos()
-	if m.cursor < 0 || m.cursor >= len(repos) {
+	repo := m.currentRepo()
+	if repo == nil {
 		return ""
 	}
-	repo := repos[m.cursor]
 
 	var b strings.Builder
 	header := fmt.Sprintf("CHANGES: %s (%s)", repo.Name, repo.Branch)
@@ -231,6 +254,83 @@ func (m Model) renderChangesPanel() string {
 	}
 
 	return b.String()
+}
+
+func (m Model) renderAddPath() string {
+	msg := "Add repo path"
+	boxW := min(m.width-4, 50)
+	inputW := boxW - 4
+	input := m.addPathInput + "█"
+	if len(input) > inputW {
+		input = input[len(input)-inputW:]
+	}
+	body := msg + "\n\n" + input + "\n\n[Enter]=save  [Esc]=cancel"
+	return boxStyle.Width(boxW).Render(body)
+}
+
+func (m Model) renderCommitInput() string {
+	var b strings.Builder
+	b.WriteString("Commit message:\n")
+
+	inputW := min(m.width-4, 60)
+	input := m.commitMsg + "█"
+	if len(input) > inputW {
+		input = input[len(input)-inputW:]
+	}
+
+	b.WriteString(inputStyle.Width(inputW).Render(input))
+	b.WriteString("\n")
+	b.WriteString(footerStyle.Render("[Enter] commit  [Esc] cancel"))
+	return b.String()
+}
+
+func (m Model) renderStageConfirm() string {
+	repo := m.currentRepo()
+	if repo == nil {
+		return ""
+	}
+
+	msg := "Stage all changes and continue?"
+	boxW := min(m.width-4, 50)
+	return boxStyle.Width(boxW).Render(msg + "\n\n[y]es  [n]o  [c]ancel")
+}
+
+func (m Model) renderPullConfirm() string {
+	repo := m.currentRepo()
+	if repo == nil {
+		return ""
+	}
+
+	msg := fmt.Sprintf("Repo is %d commits behind. Pull first?", repo.Behind)
+	boxW := min(m.width-4, 50)
+	return boxStyle.Width(boxW).Render(msg + "\n\n[y]es  [n]o  [c]ancel")
+}
+
+func (m Model) renderHelp() string {
+	help := `KEYBINDINGS
+
+Navigation
+  j/↓     Next repo
+  k/↑     Previous repo
+
+Actions
+  a       Add path
+  c       Open in editor
+  p       Commit + Push (prompts)
+  f       Fetch all
+  r       Refresh
+
+Filters
+  d       Toggle dirty-only
+
+Other
+  ?       This help
+  q       Quit
+
+Press any key to close...`
+
+	boxW := min(m.width-4, 40)
+	return boxStyle.Width(boxW).Render(help)
 }
 
 func (m Model) renderFooter() string {

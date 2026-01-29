@@ -52,4 +52,12 @@ var (
 
 	footerStyle = lipgloss.NewStyle().
 			Foreground(colorGray)
+
+	inputStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			Padding(0, 1)
+
+	boxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			Padding(0, 1)
 )
