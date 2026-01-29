@@ -1,24 +1,28 @@
 Goal (incl. success criteria):
-- Clarify UI responsiveness in REPOTUI_PRODUCT_DOC.md for right 1/3 terminal usage (40–60 cols).
+- Update docs to follow lazygit-style git CLI usage (remove go-git) and improve testing docs.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
-- Preserve 14-section numbering and ToC anchors; Last updated already January 29, 2026.
+- Preserve 14-section numbering and ToC anchors; update Last updated if needed.
 
 Key decisions:
-- Target panel width 40–60 columns; fixed/flexible layout; compact <40, normal >60.
+- Git operations use git CLI only (status/branch/ahead-behind).
+- Testing details live in REPOTUI_TESTING.md, referenced from main doc.
 
 State:
   Done:
-  - Added explicit target width note in UI spec and a responsive checklist row for 45x25.
+  - Removed go-git references/dependency and rewrote git.go snippet to CLI parsing.
+  - Updated Git Commands Reference and Resources to CLI.
+  - Adjusted troubleshooting row for CLI.
   Now:
-  - Await user review.
+  - Await user review and commit/push instruction.
   Next:
-  - Apply any further clarity edits if requested.
+  - Commit and push if requested.
 
 Open questions (UNCONFIRMED if needed):
 - None.
 
 Working set (files/ids/commands):
 - REPOTUI_PRODUCT_DOC.md
+- REPOTUI_TESTING.md
 - CONTINUITY.md

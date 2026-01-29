@@ -82,7 +82,7 @@ sudo dnf install golang     # Fedora
 3. [Lip Gloss README](https://github.com/charmbracelet/lipgloss#lip-gloss) - Styling terminal output
 
 **Helpful (Reference as Needed):**
-4. [go-git Documentation](https://pkg.go.dev/github.com/go-git/go-git/v5) - Git library API
+4. [Git Status Porcelain](https://git-scm.com/docs/git-status#_short_format) - Parseable status output
 5. [TOML Spec](https://toml.io/en/) - Config file format
 6. [ANSI Escape Codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) - Terminal colors
 
@@ -101,7 +101,6 @@ go mod init repotui
 # 3. Add dependencies
 go get github.com/charmbracelet/bubbletea
 go get github.com/charmbracelet/lipgloss
-go get github.com/go-git/go-git/v5
 go get github.com/BurntSushi/toml
 
 # 4. Create files (see Section 6 for code)
@@ -131,7 +130,7 @@ repotui/
 │   ├── config/
 │   │   └── config.go        # Load ~/.config/repotui/config.toml (TOML)
 │   ├── git/
-│   │   └── git.go           # All git operations (go-git + CLI)
+│   │   └── git.go           # All git operations (git CLI)
 │   └── ui/
 │       ├── model.go         # App state (tea.Model interface)
 │       ├── update.go        # Handle events (Update func)
@@ -203,7 +202,7 @@ func (m model) View() string {
 
 ## 5. Data Structures
 
-> 📚 See [Go struct documentation](https://go.dev/tour/moretypes/2) and [go-git Status types](https://pkg.go.dev/github.com/go-git/go-git/v5#StatusCode)
+> 📚 See [Go struct documentation](https://go.dev/tour/moretypes/2) and [git status --porcelain](https://git-scm.com/docs/git-status#_short_format)
 
 ### Core Types (define in `internal/git/git.go`)
 
@@ -334,7 +333,6 @@ type Layout struct {
 > 📖 **Reference while coding:**
 > - [Bubble Tea API](https://pkg.go.dev/github.com/charmbracelet/bubbletea)
 > - [Lip Gloss API](https://pkg.go.dev/github.com/charmbracelet/lipgloss)
-> - [go-git API](https://pkg.go.dev/github.com/go-git/go-git/v5)
 > - [TOML library](https://pkg.go.dev/github.com/BurntSushi/toml)
 
 ### File 1: `cmd/repotui/main.go`
@@ -492,19 +490,19 @@ func NormalizePath(path string) string {
 
 ### File 3: `internal/git/git.go`
 
-> 📖 Reference: [go-git Repository](https://pkg.go.dev/github.com/go-git/go-git/v5#Repository), [Worktree.Status](https://pkg.go.dev/github.com/go-git/go-git/v5#Worktree.Status), [os/exec](https://pkg.go.dev/os/exec), [filepath.WalkDir](https://pkg.go.dev/path/filepath#WalkDir)
+> 📖 Reference: [git-status --porcelain](https://git-scm.com/docs/git-status#_short_format), [git-rev-parse](https://git-scm.com/docs/git-rev-parse), [os/exec](https://pkg.go.dev/os/exec), [filepath.WalkDir](https://pkg.go.dev/path/filepath#WalkDir)
 
 ```go
 package git
 
 import (
+    "bufio"
+    "bytes"
     "os"
     "os/exec"
     "path/filepath"
     "strconv"
     "strings"
-
-    gogit "github.com/go-git/go-git/v5"
 )
 
 type FileStatus int
@@ -572,8 +570,8 @@ func ScanRepos(paths []string, depth int) []Repo {
 
 func isGitRepo(path string) bool {
     gitPath := filepath.Join(path, ".git")
-    info, err := os.Stat(gitPath)
-    return err == nil && info.IsDir()
+    _, err := os.Stat(gitPath)
+    return err == nil // allow dir or file (.git file for worktrees)
 }
 
 // GetRepoStatus gets full status for a repo
@@ -586,53 +584,9 @@ func GetRepoStatus(path string) Repo {
     // Get branch name
     repo.Branch = getBranch(path)
 
-    // Get file statuses using go-git
-    r, err := gogit.PlainOpen(path)
-    if err != nil {
-        return repo
-    }
-
-    wt, err := r.Worktree()
-    if err != nil {
-        return repo
-    }
-
-    status, err := wt.Status()
-    if err != nil {
-        return repo
-    }
-
-    // Count files by status
-    for filePath, fileStatus := range status {
-        cf := ChangedFile{Path: filePath}
-
-        // Staging area (index)
-        switch fileStatus.Staging {
-        case gogit.Added, gogit.Modified, gogit.Deleted, gogit.Renamed, gogit.Copied:
-            repo.Staged++
-            cf.Status = StatusStaged
-            repo.ChangedFiles = append(repo.ChangedFiles, cf)
-            continue
-        }
-
-        // Working tree
-        switch fileStatus.Worktree {
-        case gogit.Modified, gogit.Deleted:
-            repo.Modified++
-            cf.Status = StatusModified
-            repo.ChangedFiles = append(repo.ChangedFiles, cf)
-        case gogit.Untracked:
-            repo.Untracked++
-            cf.Status = StatusUntracked
-            repo.ChangedFiles = append(repo.ChangedFiles, cf)
-        }
-
-        // Check for conflicts (both modified)
-        if fileStatus.Staging == gogit.UpdatedButUnmerged ||
-           fileStatus.Worktree == gogit.UpdatedButUnmerged {
-            repo.HasConflict = true
-            cf.Status = StatusConflict
-        }
+    // Get file statuses using git CLI
+    if out, err := gitOutput(path, "status", "--porcelain=v1"); err == nil {
+        parsePorcelain(&repo, out)
     }
 
     // Get ahead/behind (requires git CLI for simplicity)
@@ -642,17 +596,76 @@ func GetRepoStatus(path string) Repo {
 }
 
 func getBranch(path string) string {
-    r, err := gogit.PlainOpen(path)
+    out, err := gitOutput(path, "rev-parse", "--abbrev-ref", "HEAD")
     if err != nil {
         return "unknown"
     }
-
-    head, err := r.Head()
-    if err != nil {
-        return "unknown"
+    branch := strings.TrimSpace(out)
+    if branch == "HEAD" {
+        sha, _ := gitOutput(path, "rev-parse", "--short", "HEAD")
+        sha = strings.TrimSpace(sha)
+        if sha == "" {
+            return "detached"
+        }
+        return "detached@" + sha
     }
+    return branch
+}
 
-    return head.Name().Short()
+func parsePorcelain(repo *Repo, out string) {
+    scanner := bufio.NewScanner(strings.NewReader(out))
+    for scanner.Scan() {
+        line := scanner.Text()
+        if len(line) < 3 {
+            continue
+        }
+        code := line[:2]
+        path := strings.TrimSpace(line[2:])
+        cf := ChangedFile{Path: path}
+
+        if code == "??" {
+            repo.Untracked++
+            cf.Status = StatusUntracked
+            repo.ChangedFiles = append(repo.ChangedFiles, cf)
+            continue
+        }
+
+        if isConflict(code) {
+            repo.HasConflict = true
+            cf.Status = StatusConflict
+            repo.ChangedFiles = append(repo.ChangedFiles, cf)
+            continue
+        }
+
+        if code[0] != ' ' {
+            repo.Staged++
+            cf.Status = StatusStaged
+            repo.ChangedFiles = append(repo.ChangedFiles, cf)
+        }
+        if code[1] != ' ' {
+            repo.Modified++
+            cf.Status = StatusModified
+            repo.ChangedFiles = append(repo.ChangedFiles, cf)
+        }
+    }
+}
+
+func isConflict(code string) bool {
+    switch code {
+    case "UU", "AA", "DD", "AU", "UA", "DU", "UD":
+        return true
+    default:
+        return false
+    }
+}
+
+func gitOutput(path string, args ...string) (string, error) {
+    cmd := exec.Command("git", args...)
+    cmd.Dir = path
+    var out bytes.Buffer
+    cmd.Stdout = &out
+    err := cmd.Run()
+    return out.String(), err
 }
 
 // getAheadBehind uses git CLI for reliable remote comparison
@@ -1836,6 +1849,8 @@ Commands used internally:
 
 | Command | Documentation | Purpose |
 |---------|---------------|---------|
+| `git status --porcelain=v1` | [git-status](https://git-scm.com/docs/git-status) | Parse file changes |
+| `git rev-parse --abbrev-ref HEAD` | [git-rev-parse](https://git-scm.com/docs/git-rev-parse) | Current branch |
 | `git rev-list --left-right --count HEAD...@{upstream}` | [git-rev-list](https://git-scm.com/docs/git-rev-list) | Get ahead/behind counts |
 | `git add -A` | [git-add](https://git-scm.com/docs/git-add) | Stage all changes |
 | `git commit -m "msg"` | [git-commit](https://git-scm.com/docs/git-commit) | Create commit |
@@ -1846,6 +1861,14 @@ Commands used internally:
 Note: `git add -A` is only run after the user confirms stage-all.
 
 ```bash
+# Get status (parseable)
+git status --porcelain=v1
+# Docs: https://git-scm.com/docs/git-status
+
+# Get current branch
+git rev-parse --abbrev-ref HEAD
+# Docs: https://git-scm.com/docs/git-rev-parse
+
 # Get ahead/behind counts
 git rev-list --left-right --count HEAD...@{upstream}
 # Output: "3    1" (3 ahead, 1 behind)
@@ -2005,133 +2028,7 @@ lipgloss.AdaptiveColor{Light: "0", Dark: "15"}
 
 ## 13. Testing
 
-### Manual Test Checklist
-
-```bash
-# 1. Build and run
-cd repotui
-go build ./cmd/repotui
-./repotui
-
-# 2. Test navigation
-# - Press j/k to move cursor
-
-# 3. Test with different repos
-# - Clean repo (no changes)
-# - Dirty repo (modified files)
-# - Repo ahead of remote
-# - Repo behind remote
-# - Repo with conflicts (create manually)
-
-# 4. Test actions
-# - Press 'a' to add a new path, verify config updated and list rescans
-# - Press 'a' with a missing path, verify error and no change
-# - Press 'a' with an existing path again, verify no duplicate
-# - Press 'c' to open in editor
-# - Press 'r' to refresh
-# - Press 'd' to toggle filter
-# - Press '?' for help
-
-# 5. Test commit flow
-# - Move cursor to a dirty repo
-# - Press 'p'
-# - Confirm pull if behind (y/n)
-# - Confirm stage all (y/n)
-# - Type commit message
-# - Press Enter to commit
-
-# 6. Test edge cases
-# - Empty config (no paths)
-# - Non-existent paths
-# - Very long repo names
-# - Many repos (20+)
-```
-
-### Responsive Testing
-
-Test the UI at different terminal sizes to verify responsive behavior:
-
-```bash
-# Test different terminal widths (resize your terminal or use these commands)
-
-# Very narrow (compact mode)
-printf '\e[8;30;35t'  # 35 cols x 30 rows
-./repotui
-# Expected: Branch column hidden, shorter hints
-
-# Narrow
-printf '\e[8;30;60t'  # 60 cols x 30 rows
-./repotui
-# Expected: Truncated names, normal layout
-
-# Medium
-printf '\e[8;30;100t'  # 100 cols x 30 rows
-./repotui
-# Expected: Full names, comfortable spacing
-
-# Wide
-printf '\e[8;30;150t'  # 150 cols x 30 rows
-./repotui
-# Expected: Extra padding, no stretching
-
-# Short height (no details panel)
-printf '\e[8;12;80t'  # 80 cols x 12 rows
-./repotui
-# Expected: Details panel hidden
-
-# Reset terminal size
-printf '\e[8;40;120t'  # 120 cols x 40 rows
-```
-
-**Responsive Checklist:**
-
-| Terminal Size | What to Verify |
-|---------------|----------------|
-| 35x20 (tiny) | Branch hidden, hints shortened |
-| 45x25 (right 1/3) | Works well in 40-60 cols, all key actions visible |
-| 60x25 (narrow) | Names truncated with `…` |
-| 80x30 (normal) | All columns visible |
-| 120x40 (large) | Extra padding, no overflow |
-| 150x50 (huge) | Columns don't over-stretch |
-| Any x 12 (short) | Details panel hidden |
-
-**Live Resize Test:**
-1. Run `./repotui`
-2. Drag terminal corner to resize
-3. Verify UI re-renders instantly without glitches
-4. Check columns realign correctly
-
-### Create Test Repos
-
-```bash
-# Create test environment
-mkdir -p ~/test-repos
-cd ~/test-repos
-
-# Clean repo
-mkdir clean-repo && cd clean-repo
-git init && echo "# Test" > README.md && git add . && git commit -m "init"
-cd ..
-
-# Dirty repo (modified)
-mkdir dirty-repo && cd dirty-repo
-git init && echo "# Test" > README.md && git add . && git commit -m "init"
-echo "changed" >> README.md
-cd ..
-
-# Repo with staged files
-mkdir staged-repo && cd staged-repo
-git init && echo "# Test" > README.md && git add . && git commit -m "init"
-echo "new" > new.txt && git add new.txt
-cd ..
-
-# Add to config
-mkdir -p ~/.config/repotui
-cat > ~/.config/repotui/config.toml << 'EOF'
-paths = ["~/test-repos"]
-editor = "code"
-EOF
-```
+See `REPOTUI_TESTING.md` for the automated test plan, guard checks, and manual/responsive checklists.
 
 ---
 
@@ -2143,7 +2040,7 @@ EOF
 |---------|--------|---------------|----------|
 | Bubble Tea | [charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea) | [pkg.go.dev](https://pkg.go.dev/github.com/charmbracelet/bubbletea) | TUI framework (Model-View-Update) |
 | Lip Gloss | [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) | [pkg.go.dev](https://pkg.go.dev/github.com/charmbracelet/lipgloss) | Terminal styling & colors |
-| go-git | [go-git/go-git](https://github.com/go-git/go-git) | [pkg.go.dev](https://pkg.go.dev/github.com/go-git/go-git/v5) | Git operations in Go |
+| Git CLI | [git/git](https://github.com/git/git) | [git-scm.com/docs](https://git-scm.com/docs) | Git operations via CLI |
 | TOML | [BurntSushi/toml](https://github.com/BurntSushi/toml) | [pkg.go.dev](https://pkg.go.dev/github.com/BurntSushi/toml) | Config file parsing |
 
 ### Bubble Tea (TUI Framework)
@@ -2181,20 +2078,18 @@ EOF
 - [lipgloss.Width()](https://pkg.go.dev/github.com/charmbracelet/lipgloss#Width) - Get rendered width
 - [lipgloss.Color()](https://pkg.go.dev/github.com/charmbracelet/lipgloss#Color) - Define colors
 
-### go-git (Git Library)
+### Git CLI (Porcelain)
 
 | Resource | Link | Description |
 |----------|------|-------------|
-| GitHub Repo | [go-git/go-git](https://github.com/go-git/go-git) | Source code, issues |
-| API Reference | [pkg.go.dev](https://pkg.go.dev/github.com/go-git/go-git/v5) | Full API documentation |
-| Examples | [_examples/](https://github.com/go-git/go-git/tree/master/_examples) | Common operations |
-| Worktree | [worktree.go](https://pkg.go.dev/github.com/go-git/go-git/v5#Worktree) | Status, add, commit |
-| Repository | [repository.go](https://pkg.go.dev/github.com/go-git/go-git/v5#Repository) | Open, clone, fetch |
+| git-status | [git-status](https://git-scm.com/docs/git-status) | Status output and porcelain format |
+| git-rev-parse | [git-rev-parse](https://git-scm.com/docs/git-rev-parse) | Branch and HEAD info |
+| git-rev-list | [git-rev-list](https://git-scm.com/docs/git-rev-list) | Ahead/behind counts |
 
-**Key go-git Operations:**
-- [git.PlainOpen()](https://pkg.go.dev/github.com/go-git/go-git/v5#PlainOpen) - Open existing repo
-- [Worktree.Status()](https://pkg.go.dev/github.com/go-git/go-git/v5#Worktree.Status) - Get file statuses
-- [Repository.Head()](https://pkg.go.dev/github.com/go-git/go-git/v5#Repository.Head) - Get current branch
+**Key Git CLI Calls:**
+- `git status --porcelain=v1` - Parse file changes
+- `git rev-parse --abbrev-ref HEAD` - Current branch
+- `git rev-list --left-right --count HEAD...@{upstream}` - Ahead/behind
 
 ### Go Language
 
@@ -2272,7 +2167,7 @@ EOF
 | `go: module not found` | Run `go mod tidy` | [Go Modules](https://go.dev/ref/mod#go-mod-tidy) |
 | Colors not showing | Check `$TERM` supports colors | [ANSI Colors](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) |
 | Keys not working | Try different terminal | [Bubble Tea FAQ](https://github.com/charmbracelet/bubbletea#faq) |
-| go-git slow | Use git CLI for large repos | [go-git issues](https://github.com/go-git/go-git/issues) |
+| Git commands slow | Increase refresh interval | [git](https://git-scm.com/docs) |
 | Resize flickers | Use `tea.WithAltScreen()` | [Bubble Tea Options](https://pkg.go.dev/github.com/charmbracelet/bubbletea#WithAltScreen) |
 | Import cycle | Check package dependencies | [Go Import Cycles](https://go.dev/doc/faq#import_cycle) |
 
