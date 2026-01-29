@@ -1,4 +1,4 @@
-# RepoTUI - Implementation Guide
+# RTUI - Implementation Guide
 
 > A minimal TUI dashboard to monitor and manage multiple git repos from a parent folder.
 
@@ -92,11 +92,11 @@ sudo dnf install golang     # Fedora
 
 ```bash
 # 1. Create project
-mkdir -p repotui/cmd/repotui repotui/internal/{config,git,ui}
-cd repotui
+mkdir -p rtui/cmd/rtui rtui/internal/{config,git,ui}
+cd rtui
 
 # 2. Initialize Go module
-go mod init repotui
+go mod init rtui
 
 # 3. Add dependencies
 go get github.com/charmbracelet/bubbletea
@@ -107,11 +107,11 @@ go get github.com/BurntSushi/toml
 # ... implement each file ...
 
 # 5. Build and run
-go build ./cmd/repotui
-./repotui
+go build ./cmd/rtui
+./rtui
 
 # Or run directly during development
-go run ./cmd/repotui
+go run ./cmd/rtui
 ```
 
 ---
@@ -123,12 +123,12 @@ go run ./cmd/repotui
 > 📁 Following [Go project layout conventions](https://go.dev/doc/modules/layout#package-or-command-with-supporting-packages)
 
 ```
-repotui/
-├── cmd/repotui/
+rtui/
+├── cmd/rtui/
 │   └── main.go              # Entry point, starts Bubble Tea
 ├── internal/
 │   ├── config/
-│   │   └── config.go        # Load ~/.config/repotui/config.toml (TOML)
+│   │   └── config.go        # Load ~/.config/rtui/config.toml (TOML)
 │   ├── git/
 │   │   └── git.go           # All git operations (git CLI)
 │   └── ui/
@@ -335,7 +335,7 @@ type Layout struct {
 > - [Lip Gloss API](https://pkg.go.dev/github.com/charmbracelet/lipgloss)
 > - [TOML library](https://pkg.go.dev/github.com/BurntSushi/toml)
 
-### File 1: `cmd/repotui/main.go`
+### File 1: `cmd/rtui/main.go`
 
 > 📖 Reference: [tea.NewProgram](https://pkg.go.dev/github.com/charmbracelet/bubbletea#NewProgram), [Program options](https://pkg.go.dev/github.com/charmbracelet/bubbletea#ProgramOption)
 
@@ -347,8 +347,8 @@ import (
     "os"
 
     tea "github.com/charmbracelet/bubbletea"
-    "repotui/internal/config"
-    "repotui/internal/ui"
+    "rtui/internal/config"
+    "rtui/internal/ui"
 )
 
 func main() {
@@ -414,10 +414,10 @@ func getDefaultEditor() string {
     return "code"
 }
 
-// configPath returns ~/.config/repotui/config.toml
+// configPath returns ~/.config/rtui/config.toml
 func configPath() string {
     home, _ := os.UserHomeDir()
-    return filepath.Join(home, ".config", "repotui", "config.toml")
+    return filepath.Join(home, ".config", "rtui", "config.toml")
 }
 
 // Load reads config from file, returns defaults if not found
@@ -830,8 +830,8 @@ import (
     "time"
 
     tea "github.com/charmbracelet/bubbletea"
-    "repotui/internal/config"
-    "repotui/internal/git"
+    "rtui/internal/config"
+    "rtui/internal/git"
 )
 
 type ViewMode int
@@ -934,8 +934,8 @@ package ui
 
 import (
     tea "github.com/charmbracelet/bubbletea"
-    "repotui/internal/config"
-    "repotui/internal/git"
+    "rtui/internal/config"
+    "rtui/internal/git"
 )
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -1193,7 +1193,7 @@ import (
     "strings"
 
     "github.com/charmbracelet/lipgloss"
-    "repotui/internal/git"
+    "rtui/internal/git"
 )
 
 // Layout holds calculated column widths for responsive design
@@ -1296,7 +1296,7 @@ func (m Model) View() string {
 }
 
 func (m Model) renderHeader() string {
-    title := titleStyle.Render("● RepoTUI")
+    title := titleStyle.Render("● RTUI")
     hints := footerStyle.Render("[r]fresh  [q]uit")
 
     // Right-align hints dynamically
@@ -1636,7 +1636,7 @@ Design for 40-60 columns as the common panel width.
 ### Layout Structure
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ ● RepoTUI                                          [r]fresh  [q]uit     │
+│ ● RTUI                                          [r]fresh  [q]uit     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ REPOSITORIES                                                            │
 │─────────────────────────────────────────────────────────────────────────│
@@ -1928,7 +1928,7 @@ git fetch --all
 
 > 📖 Reference: [TOML Specification](https://toml.io/en/), [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html), [TOML Validator](https://www.toml.io/en/validator)
 
-**Location:** `~/.config/repotui/config.toml`
+**Location:** `~/.config/rtui/config.toml`
 
 ```toml
 # Folders to scan for git repos
@@ -1957,13 +1957,13 @@ show_clean = true
 scan_depth = 1
 ```
 
-Note: If the config file is missing or `paths` is empty, RepoTUI scans the current working directory (CWD) and shows a banner with the path.
+Note: If the config file is missing or `paths` is empty, RTUI scans the current working directory (CWD) and shows a banner with the path.
 Note: The UI `[a]dd path` appends a normalized path to `paths` and writes the config file. Path must exist; duplicates are ignored.
 
 **Create config manually:**
 ```bash
-mkdir -p ~/.config/repotui
-cat > ~/.config/repotui/config.toml << 'EOF'
+mkdir -p ~/.config/rtui
+cat > ~/.config/rtui/config.toml << 'EOF'
 paths = ["~/your/repos/folder"]
 editor = "code"
 EOF
@@ -2028,7 +2028,7 @@ lipgloss.AdaptiveColor{Light: "0", Dark: "15"}
 
 ## 13. Testing
 
-See `REPOTUI_TESTING.md` for the automated test plan, guard checks, and manual/responsive checklists.
+See `RTUI_TESTING.md` for the automated test plan, guard checks, and manual/responsive checklists.
 
 ---
 
@@ -2178,11 +2178,11 @@ See `REPOTUI_TESTING.md` for the automated test plan, guard checks, and manual/r
 │                    QUICK REFERENCE                          │
 ├─────────────────────────────────────────────────────────────┤
 │ Go Commands                                                 │
-│   go mod init repotui     # Initialize module               │
+│   go mod init rtui     # Initialize module               │
 │   go mod tidy             # Clean dependencies              │
 │   go get <pkg>            # Add dependency                  │
-│   go build ./cmd/repotui  # Build binary                    │
-│   go run ./cmd/repotui    # Build and run                   │
+│   go build ./cmd/rtui  # Build binary                    │
+│   go run ./cmd/rtui    # Build and run                   │
 ├─────────────────────────────────────────────────────────────┤
 │ Git Commands (used internally)                              │
 │   git rev-list --left-right --count HEAD...@{upstream}     │
@@ -2208,8 +2208,8 @@ See `REPOTUI_TESTING.md` for the automated test plan, guard checks, and manual/r
 After implementation, you should have:
 
 ```
-repotui/
-├── cmd/repotui/
+rtui/
+├── cmd/rtui/
 │   └── main.go           (~30 lines)
 ├── internal/
 │   ├── config/

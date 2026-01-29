@@ -1,28 +1,30 @@
 Goal (incl. success criteria):
-- Update docs to follow lazygit-style git CLI usage (remove go-git) and improve testing docs.
+- Rename and update documentation to use RTUI (not RepoTUI) and align names/paths with current folder.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
-- Preserve 14-section numbering and ToC anchors; update Last updated if needed.
+- Use existing docs as source of truth; adjust names/paths accordingly.
 
 Key decisions:
-- Git operations use git CLI only (status/branch/ahead-behind).
-- Testing details live in REPOTUI_TESTING.md, referenced from main doc.
+- Renamed docs to RTUI_* and replaced product/module/config names to rtui.
+- AGENTS_.md will be ignored (not restored).
 
 State:
   Done:
-  - Removed go-git references/dependency and rewrote git.go snippet to CLI parsing.
-  - Updated Git Commands Reference and Resources to CLI.
-  - Adjusted troubleshooting row for CLI.
+  - Renamed files: RTUI_PRODUCT_DOC.md, RTUI_TESTING.md, RTUI_PHASES.md.
+  - Replaced RepoTUI/repotui references across docs and AGENTS.md.
+  - Marked AGENTS_.md as ignored (no restore).
   Now:
-  - Await user review and commit/push instruction.
+  - Await next instruction (commit/push if requested).
   Next:
-  - Commit and push if requested.
+  - None.
 
 Open questions (UNCONFIRMED if needed):
 - None.
 
 Working set (files/ids/commands):
-- REPOTUI_PRODUCT_DOC.md
-- REPOTUI_TESTING.md
+- RTUI_PRODUCT_DOC.md
+- RTUI_TESTING.md
+- RTUI_PHASES.md
+- AGENTS.md
 - CONTINUITY.md

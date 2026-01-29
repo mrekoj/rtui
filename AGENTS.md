@@ -1,6 +1,6 @@
 # AGENTS.md
 
-RepoTUI product documentation. Start: say hi + confirm doc scope. Style: telegraph; minimal tokens; skip filler.
+RTUI product documentation. Start: say hi + confirm doc scope. Style: telegraph; minimal tokens; skip filler.
 
 ## Continuity Ledger (compaction-safe)
 
@@ -35,7 +35,7 @@ Maintain a single Continuity Ledger for this workspace in `CONTINUITY.md`. The l
 - Working set (files/ids/commands):
 
 ## Protocol
-- Read `REPOTUI_PRODUCT_DOC.md` first; treat it as source of truth
+- Read `RTUI_PRODUCT_DOC.md` first; treat it as source of truth
 - Preserve the 14-section numbering and ToC anchors; update ToC when headings change
 - Keep tone technical, direct, and consistent with existing sections
 - Use ASCII only unless the file already uses non-ASCII
@@ -43,7 +43,7 @@ Maintain a single Continuity Ledger for this workspace in `CONTINUITY.md`. The l
 - When making material edits, update the "Last updated" line with an absolute date
 
 ## Doc Goals
-- Define product scope, UX, and implementation details for RepoTUI
+- Define product scope, UX, and implementation details for RTUI
 - Keep requirements, keybindings, config, and error handling aligned
 - Provide runnable, correct snippets that match the intended stack
 
@@ -69,9 +69,9 @@ Maintain a single Continuity Ledger for this workspace in `CONTINUITY.md`. The l
 ## Quality Checks
 - Headings and anchors match the ToC
 - Tables are aligned and not stale
-- Examples use consistent names (RepoTUI, repo, path, branch)
+- Examples use consistent names (RTUI, repo, path, branch)
 - No broken or duplicate keybindings
-- Commands match the doc (Go 1.21+, module name `repotui`)
+- Commands match the doc (Go 1.21+, module name `rtui`)
 
 ## Conventions
 - Prefer compact tables over long prose

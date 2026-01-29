@@ -1,4 +1,4 @@
-# RepoTUI Testing Guide
+# RTUI Testing Guide
 
 > Automated-first testing plan with safety guards and responsive checks.
 
@@ -16,7 +16,7 @@ GOFLAGS="-count=1" go test ./internal/ui -run TestLayout
 ```
 
 Environment variables used by tests (define in CI or local shell):
-- `REPOTUI_TEST_REPOS_ROOT` (path where fixtures are created)
+- `RTUI_TEST_REPOS_ROOT` (path where fixtures are created)
 
 ## 2. Test Layers
 
@@ -55,11 +55,11 @@ Focus: render stability for right-panel widths.
 
 ## 4. Fixture Setup (automated)
 
-Use a helper that creates temp repos under `REPOTUI_TEST_REPOS_ROOT`.
+Use a helper that creates temp repos under `RTUI_TEST_REPOS_ROOT`.
 Example script logic (for reference in tests):
 
 ```bash
-ROOT=${REPOTUI_TEST_REPOS_ROOT:-/tmp/repotui-test-repos}
+ROOT=${RTUI_TEST_REPOS_ROOT:-/tmp/rtui-test-repos}
 rm -rf "$ROOT" && mkdir -p "$ROOT"
 
 # clean repo
