@@ -24,6 +24,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if wasLoading {
 			m.statusMsg = "Refreshed"
 		}
+		if m.watcher != nil {
+			return m, m.watchAddReposCmd(msg.repos)
+		}
+		return m, nil
+	case watchStartedMsg:
+		m.watcher = msg.manager
+		cmds := []tea.Cmd{m.watchEventsCmd(), m.watchErrorsCmd()}
+		if len(m.repos) > 0 {
+			cmds = append(cmds, m.watchAddReposCmd(m.repos))
+		}
+		return m, tea.Batch(cmds...)
+	case watchEventMsg:
+		return m, tea.Batch(
+			m.refreshRepoCmd(msg.Repo),
+			m.watchEventsCmd(),
+		)
+	case watchErrMsg:
+		m.statusMsg = "Watcher error: " + msg.Error()
+		return m, m.watchErrorsCmd()
+	case repoUpdatedMsg:
+		m.applyRepoUpdate(msg.repo)
 		return m, nil
 	case statusMsg:
 		m.statusMsg = string(msg)
@@ -63,6 +84,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "q", "ctrl+c":
+		if m.watcher != nil {
+			_ = m.watcher.Close()
+		}
 		return m, tea.Quit
 	case "j", "down":
 		if m.cursor < len(m.visibleRepos())-1 {

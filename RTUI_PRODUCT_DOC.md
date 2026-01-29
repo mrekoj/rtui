@@ -219,7 +219,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 |-------|---------|---------|
 | paths | Folders to scan for repos | empty (falls back to CWD) |
 | editor | Command to open repo | "code" |
-| refresh_interval | Auto-refresh seconds (0 = off) | 30 |
+| refresh_interval | Reserved for future polling (unused in watcher-only). | 0 |
 | show_clean | Show clean repos | true |
 | scan_depth | Max depth under each path | 1 |
 
@@ -274,6 +274,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 | `cmd/rtui/main.go` | Load config, start Bubble Tea program |
 | `internal/config` | Read/write TOML config, path normalization |
 | `internal/git` | All git status/commit/push/pull/fetch calls |
+| `internal/watch` | File system watcher for auto-refresh (fsnotify) |
 | `internal/ui/model` | Holds UI state and modes |
 | `internal/ui/update` | Handles key events and async commands |
 | `internal/ui/view` | Renders list, panels, and modals |
@@ -283,10 +284,18 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 
 - Startup: load config -> scan repos -> render list
 - Refresh: `r` triggers rescan and updates header status
+- Auto-refresh (watcher-only): file events trigger per-repo refresh after 500ms debounce
 - Commit: `c` opens commit input; commit auto-stages all
 - Push: `p` pushes current repo; if behind, prompt to pull
 - Pull: confirmation dialog; after pull, auto-refresh
 - Add path: `a` opens input; append path, rescan
+
+### Auto-refresh (watcher-only)
+
+- Watch scope: repo root + `.git/index` + `.git/HEAD`
+- Debounce: 500ms per repo (coalesce rapid changes)
+- No polling; manual refresh (`r`) remains available
+- On watcher error: show header status and rely on manual refresh
 
 
 ---
@@ -505,9 +514,9 @@ paths = [
 # Common editors: "code", "zed", "nvim", "hx", "subl"
 editor = "zed"
 
-# Auto-refresh interval in seconds (0 to disable)
+# Auto-refresh interval in seconds (reserved for polling mode; set 0 in watcher-only)
 # TOML integer: https://toml.io/en/v1.0.0#integer
-refresh_interval = 30
+refresh_interval = 0
 
 # Show clean repos (true) or dirty only (false)
 # TOML boolean: https://toml.io/en/v1.0.0#boolean
@@ -569,6 +578,7 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 | Config write fails | Show error, keep config unchanged |
 | Add path already exists | Show status message, no change |
 | Push fails | Show error message in header status line |
+| Watcher error | Show status warning, rely on manual refresh |
 | Network error | Show error, allow retry |
 
 ### Error Display
@@ -594,6 +604,7 @@ See `RTUI_TESTING.md` for the automated test plan, guard checks, and manual/resp
 | Lip Gloss | [charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) | [pkg.go.dev](https://pkg.go.dev/github.com/charmbracelet/lipgloss) | Terminal styling & colors |
 | Git CLI | [git/git](https://github.com/git/git) | [git-scm.com/docs](https://git-scm.com/docs) | Git operations via CLI |
 | TOML | [BurntSushi/toml](https://github.com/BurntSushi/toml) | [pkg.go.dev](https://pkg.go.dev/github.com/BurntSushi/toml) | Config file parsing |
+| fsnotify | [fsnotify/fsnotify](https://github.com/fsnotify/fsnotify) | [pkg.go.dev](https://pkg.go.dev/github.com/fsnotify/fsnotify) | File system watcher (auto-refresh) |
 
 ### Bubble Tea (TUI Framework)
 

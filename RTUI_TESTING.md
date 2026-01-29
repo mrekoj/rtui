@@ -32,6 +32,7 @@ Focus: deterministic logic, no external git.
 - `config.AppendPath`: requires existing path, ignores duplicates, writes config.
 - `config.Load/Save`: round-trip, preserves values.
 - UI model state transitions: `ModeAddPath`, `ModeConfirmStage`, `ModeConfirmPull`, `ModeCommitInput`.
+- Watcher logic: debounce coalescing, ignore rules, per-repo event handling.
 
 ### 2.2 Integration Tests (git + filesystem)
 Focus: git status counts and safety flows.
@@ -91,6 +92,7 @@ Tests should create and clean fixtures automatically.
 - Add a path using `a`, verify config update and rescan.
 - Commit flow: behind prompt, stage-all prompt, commit message.
 - Toggle dirty-only filter.
+- Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
 
 ## 6. Responsive Checks (right panel)
 

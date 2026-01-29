@@ -7,6 +7,7 @@ import (
 
 	"rtui/internal/config"
 	"rtui/internal/git"
+	"rtui/internal/watch"
 )
 
 type Model struct {
@@ -22,6 +23,7 @@ type Model struct {
 	loading      bool
 	statusMsg    string
 	err          error
+	watcher      watch.Runner
 }
 
 // Messages
@@ -35,6 +37,8 @@ type statusMsg string
 type pullDoneMsg string
 type commitDoneMsg string
 type pushDoneMsg string
+type watchEventMsg watch.Event
+type watchErrMsg error
 
 type ViewMode int
 
@@ -55,7 +59,10 @@ func NewModel(cfg config.Config) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.loadRepos()
+	return tea.Batch(
+		m.loadRepos(),
+		startWatcherCmd(),
+	)
 }
 
 func (m Model) loadRepos() tea.Cmd {

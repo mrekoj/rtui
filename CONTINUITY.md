@@ -1,9 +1,10 @@
 Goal (incl. success criteria):
-- Keep RTUI_PRODUCT_DOC.md at business-logic level; no code snippets.
+- Plan modular fsnotify watcher with tests-first and per-phase test+report+doc updates.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
 - User request: docs should not include code; code lives only in repo.
+- New requirement: tests first; after each phase run tests, write report, update doc.
 
 Key decisions:
 - Treat bracketed paste as KeyRunes with Paste=true; strip newlines.
@@ -38,10 +39,25 @@ State:
   - Removed all Go code blocks from RTUI_PRODUCT_DOC.md and replaced with business-logic text/tables.
   - Simplified Implementation Guide to module responsibilities and runtime flows.
   - Filled UI spec rules (responsive, truncation, resize) without code.
+  - Committed and pushed docs cleanup + header status update.
+  - Found references: gh-dash uses polling interval defaults; gh run watch polls at 3s; watchman provides file-watching; gitwatch uses inotify/fswatch.
+  - Chosen: fsnotify watcher-only, debounce 500ms, watch repo root + .git/index + .git/HEAD.
+  - Phase 0 tests added for watcher debounce and ignore rules.
+  - Phase 0 report written.
+  - RTUI_PRODUCT_DOC.md updated with watcher-only flow and fsnotify dependency.
+  - RTUI_TESTING.md updated with watcher tests + manual check.
+  - Phase 1 watcher module implemented (fsnotify backend).
+  - Added repo-path test and fsnotify dependency.
+  - Phase 1 report written.
+  - Ran scripts/phase4_tests.sh after Phase 1.
+  - Phase 2 integration: watcher lifecycle wired into UI.
+  - Added watcher integration tests.
+  - Phase 2 report written.
+  - Ran scripts/phase4_tests.sh after Phase 2.
   Now:
-  - Await user review of doc cleanup (business-logic only).
+  - Commit and push watcher phases (0-2) changes.
   Next:
-  - Commit and push if requested.
+  - Await next request.
 
 Open questions (UNCONFIRMED if needed):
 - None.
