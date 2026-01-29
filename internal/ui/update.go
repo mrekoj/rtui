@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"rtui/internal/config"
@@ -14,10 +16,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		return m, nil
 	case reposLoadedMsg:
+		wasLoading := m.loading
 		m.repos = msg.repos
 		m.loading = false
 		if msg.usedCWD && msg.cwd != "" {
 			m.statusMsg = "Scanning CWD: " + msg.cwd
+		} else if wasLoading {
+			m.statusMsg = "Refreshed"
 		}
 		return m, nil
 	case statusMsg:
@@ -141,7 +146,9 @@ func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.addPathInput = m.addPathInput[:len(m.addPathInput)-1]
 		}
 	default:
-		if len(msg.String()) == 1 {
+		if msg.Paste && msg.Type == tea.KeyRunes {
+			m.addPathInput += stripNewlines(string(msg.Runes))
+		} else if len(msg.String()) == 1 {
 			m.addPathInput += msg.String()
 		}
 	}
@@ -190,7 +197,9 @@ func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.commitMsg = m.commitMsg[:len(m.commitMsg)-1]
 		}
 	default:
-		if len(msg.String()) == 1 {
+		if msg.Paste && msg.Type == tea.KeyRunes {
+			m.commitMsg += stripNewlines(string(msg.Runes))
+		} else if len(msg.String()) == 1 {
 			m.commitMsg += msg.String()
 		}
 	}
@@ -227,3 +236,9 @@ func (m Model) handleHelp(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 type errEmptyPath struct{}
 
 func (errEmptyPath) Error() string { return "empty path" }
+
+func stripNewlines(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	return s
+}

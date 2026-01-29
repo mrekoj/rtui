@@ -13,13 +13,13 @@ var (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorCyan)
-
 	cursorStyle = lipgloss.NewStyle().
 			Bold(true).
 			Reverse(true)
+
+	selectedRepoStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(colorCyan)
 
 	cleanRepoStyle = lipgloss.NewStyle().
 			Foreground(colorGray)

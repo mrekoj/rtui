@@ -60,9 +60,6 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	b.WriteString(m.renderHeader())
-	b.WriteString("\n")
-
 	switch m.mode {
 	case ModeHelp:
 		b.WriteString(m.renderHelp())
@@ -90,28 +87,10 @@ func (m Model) View() string {
 		}
 	}
 
-	b.WriteString("\n")
-	b.WriteString(m.renderFooter())
+	footer := m.renderFooter()
+	b.WriteString(padToBottom(m.height, b.String(), footer))
 
 	return b.String()
-}
-
-func (m Model) renderHeader() string {
-	title := titleStyle.Render("● RTUI")
-	hints := footerStyle.Render("[r]fresh  [q]uit")
-
-	titleW := lipgloss.Width(title)
-	hintsW := lipgloss.Width(hints)
-	gap := m.width - titleW - hintsW
-
-	if gap < 1 {
-		if m.width < 30 {
-			return title
-		}
-		gap = 1
-	}
-
-	return title + strings.Repeat(" ", gap) + hints
 }
 
 func (m Model) renderRepoList() string {
@@ -146,14 +125,20 @@ func (m Model) renderRepoList() string {
 func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) string {
 	cursor := "  "
 	if isCursor {
-		cursor = "▶ "
+		cursor = "→ "
 	}
 
 	name := fmt.Sprintf("%-*s", layout.Name, truncate(repo.Name, layout.Name))
+	if isCursor {
+		name = selectedRepoStyle.Render(name)
+	}
 
 	var branch string
 	if layout.Branch > 0 {
 		branch = fmt.Sprintf("%-*s", layout.Branch, truncate(repo.Branch, layout.Branch))
+		if isCursor {
+			branch = selectedRepoStyle.Render(branch)
+		}
 	}
 
 	var status string
@@ -194,9 +179,7 @@ func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) strin
 		line = cursor + name + " " + statusPadded + " " + sync
 	}
 
-	if isCursor {
-		line = cursorStyle.Render(line)
-	} else if repo.IsDirty() {
+	if repo.IsDirty() {
 		line = dirtyRepoStyle.Render(line)
 	} else {
 		line = cleanRepoStyle.Render(line)
@@ -359,6 +342,15 @@ func (m Model) renderFooter() string {
 	}
 
 	return left + strings.Repeat(" ", gap) + right
+}
+
+func padToBottom(height int, body, footer string) string {
+	lines := strings.Split(body, "\n")
+	if height <= len(lines)+1 {
+		return "\n" + footer
+	}
+	gap := height - len(lines) - 1
+	return "\n" + strings.Repeat("\n", gap) + footer
 }
 
 func truncate(s string, maxW int) string {

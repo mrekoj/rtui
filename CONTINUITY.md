@@ -1,34 +1,33 @@
 Goal (incl. success criteria):
-- Complete Phase 4 hardening + polish + expanded tests per RTUI_PHASES.md.
+- Remove header/title line per user preference.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
-- Each phase completes only with report + tests/scripts.
 
 Key decisions:
-- Phase 4 completed per plan.
+- Treat bracketed paste as KeyRunes with Paste=true; strip newlines.
+- Render footer after padding content to terminal height.
 
 State:
   Done:
-  - Phase 1–4 completed, tests and reports created.
-  - Added git integration tests, phase4 scripts, smoke script.
-  - Updated RTUI_TESTING.md and RTUI_PRODUCT_DOC.md for CWD banner behavior.
+  - Added paste handling in add-path and commit input.
+  - Added paste tests.
+  - Ran scripts/phase4_tests.sh.
+  - Pinned footer/status line to bottom of terminal.
+  - Ran scripts/phase4_tests.sh after footer change.
+  - Changed selected row to arrow "→" + text-only highlight on name/branch.
+  - Ran scripts/phase4_tests.sh after selection change.
+  - Removed header/title line.
+  - Ran scripts/phase4_tests.sh after header removal.
   Now:
   - Await commit/push instruction.
   Next:
-  - None.
+  - Commit and push if requested.
 
 Open questions (UNCONFIRMED if needed):
 - None.
 
 Working set (files/ids/commands):
-- internal/git/git.go
-- internal/git/git_integration_test.go
-- internal/ui/model.go
-- internal/ui/update.go
-- scripts/smoke.sh
-- scripts/phase4_tests.sh
-- reports/PHASE-4.md
-- RTUI_TESTING.md
-- RTUI_PRODUCT_DOC.md
+- internal/ui/view.go
+- internal/ui/styles.go
 - CONTINUITY.md
