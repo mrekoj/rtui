@@ -94,11 +94,7 @@ func (m Model) View() string {
 func (m Model) renderRepoList() string {
 	var b strings.Builder
 
-	header := "REPOSITORIES"
-	if m.filterDirty {
-		header += " (dirty only)"
-	}
-	b.WriteString(sectionTitleStyle.Render(header))
+	b.WriteString(m.renderRepoSectionHeader())
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("─", m.width))
 	b.WriteString("\n")
@@ -123,6 +119,37 @@ func (m Model) renderRepoList() string {
 	}
 
 	return b.String()
+}
+
+func (m Model) renderRepoSectionHeader() string {
+	header := "REPOSITORIES"
+	if m.filterDirty {
+		header += " (dirty only)"
+	}
+
+	status := m.statusMsg
+	if m.loading {
+		status = "Loading..."
+	}
+	if status == "" {
+		return sectionTitleStyle.Render(header)
+	}
+
+	right := footerStyle.Render(status)
+	rightW := lipgloss.Width(right)
+	maxLeft := m.width - rightW - 1
+	if maxLeft <= 0 {
+		return right
+	}
+	if lipgloss.Width(header) > maxLeft {
+		header = truncate(header, maxLeft)
+	}
+	left := sectionTitleStyle.Render(header)
+	gap := m.width - lipgloss.Width(left) - rightW
+	if gap < 1 {
+		gap = 1
+	}
+	return left + strings.Repeat(" ", gap) + right
 }
 
 func (m Model) renderRepoHeader(layout Layout) string {
@@ -340,26 +367,7 @@ func (m Model) renderFooter() string {
 		actions = "a:add c:com o:open p:push r:ref ?:help"
 	}
 
-	status := m.statusMsg
-	if m.loading {
-		status = "Loading..."
-	}
-
-	left := footerStyle.Render(actions)
-	right := footerStyle.Render(status)
-
-	leftW := lipgloss.Width(left)
-	rightW := lipgloss.Width(right)
-	gap := m.width - leftW - rightW
-
-	if gap < 1 {
-		if m.width < 40 {
-			return right
-		}
-		gap = 1
-	}
-
-	return left + strings.Repeat(" ", gap) + right
+	return footerStyle.Render(actions)
 }
 
 func padToBottom(height int, body, footer string) string {

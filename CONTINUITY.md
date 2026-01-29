@@ -1,8 +1,9 @@
 Goal (incl. success criteria):
-- Implement commit-only flow (auto-stage all), separate push, and auto-refresh after push.
+- Keep RTUI_PRODUCT_DOC.md at business-logic level; no code snippets.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
+- User request: docs should not include code; code lives only in repo.
 
 Key decisions:
 - Treat bracketed paste as KeyRunes with Paste=true; strip newlines.
@@ -30,8 +31,15 @@ State:
   - Added commit/push completion messages and auto-refresh after pull/push/commit.
   - Updated RTUI_PRODUCT_DOC.md for new flow and keybindings.
   - Ran scripts/phase4_tests.sh after UX change.
+  - Moved status text to REPOSITORIES header line (right-aligned).
+  - Simplified footer to actions only.
+  - Updated RTUI_PRODUCT_DOC.md UI spec and layout snippets for header status.
+  - Ran scripts/phase4_tests.sh (escalated to access Go build cache).
+  - Removed all Go code blocks from RTUI_PRODUCT_DOC.md and replaced with business-logic text/tables.
+  - Simplified Implementation Guide to module responsibilities and runtime flows.
+  - Filled UI spec rules (responsive, truncation, resize) without code.
   Now:
-  - Await user review of new commit/push UX and table widths.
+  - Await user review of doc cleanup (business-logic only).
   Next:
   - Commit and push if requested.
 
@@ -41,4 +49,5 @@ Open questions (UNCONFIRMED if needed):
 Working set (files/ids/commands):
 - internal/ui/view.go
 - internal/ui/styles.go
+- RTUI_PRODUCT_DOC.md
 - CONTINUITY.md
