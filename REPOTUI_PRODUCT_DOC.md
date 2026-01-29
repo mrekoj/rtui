@@ -281,6 +281,7 @@ type ViewMode int
 
 const (
     ModeNormal ViewMode = iota
+    ModeAddPath
     ModeCommitInput
     ModeConfirmStage
     ModeConfirmPull
@@ -296,6 +297,7 @@ type Model struct {
     // UI State
     cursor       int      // Highlighted repo index (active repo)
     mode         ViewMode // Current mode
+    addPathInput string   // Path input for add-path modal
     commitMsg    string   // Commit message being typed
     filterDirty  bool     // Only show dirty repos
 
@@ -381,8 +383,10 @@ func main() {
 package config
 
 import (
+    "fmt"
     "os"
     "path/filepath"
+    "strings"
 
     "github.com/BurntSushi/toml"
 )
@@ -435,18 +439,54 @@ func Load() (Config, error) {
 
     // Expand ~ in paths
     for i, p := range cfg.Paths {
-        cfg.Paths[i] = expandHome(p)
+        cfg.Paths[i] = NormalizePath(p)
     }
 
     return cfg, nil
 }
 
-func expandHome(path string) string {
-    if len(path) > 0 && path[0] == '~' {
-        home, _ := os.UserHomeDir()
-        return filepath.Join(home, path[1:])
+func Save(cfg Config) error {
+    path := configPath()
+    if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+        return err
     }
-    return path
+    f, err := os.Create(path)
+    if err != nil {
+        return err
+    }
+    defer f.Close()
+    return toml.NewEncoder(f).Encode(cfg)
+}
+
+// AppendPath normalizes and appends a path, then saves config (requires existing path, ignores duplicates)
+func AppendPath(cfg *Config, path string) error {
+    p := NormalizePath(path)
+    if p == "" {
+        return fmt.Errorf("empty path")
+    }
+    if _, err := os.Stat(p); err != nil {
+        return err
+    }
+    for _, existing := range cfg.Paths {
+        if NormalizePath(existing) == p {
+            return nil // already present
+        }
+    }
+    cfg.Paths = append(cfg.Paths, p)
+    return Save(*cfg)
+}
+
+// NormalizePath expands ~ and cleans path
+func NormalizePath(path string) string {
+    p := strings.TrimSpace(path)
+    if p == "" {
+        return ""
+    }
+    if p[0] == '~' {
+        home, _ := os.UserHomeDir()
+        p = filepath.Join(home, p[1:])
+    }
+    return filepath.Clean(p)
 }
 ```
 
@@ -785,6 +825,7 @@ type ViewMode int
 
 const (
     ModeNormal ViewMode = iota
+    ModeAddPath
     ModeCommitInput
     ModeConfirmStage
     ModeConfirmPull
@@ -796,6 +837,7 @@ type Model struct {
     config      config.Config
     cursor      int
     mode        ViewMode
+    addPathInput string
     commitMsg   string
     filterDirty bool
     width       int
@@ -879,6 +921,7 @@ package ui
 
 import (
     tea "github.com/charmbracelet/bubbletea"
+    "repotui/internal/config"
     "repotui/internal/git"
 )
 
@@ -929,6 +972,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
     // Handle different modes
     switch m.mode {
+    case ModeAddPath:
+        return m.handleAddPath(msg)
     case ModeCommitInput:
         return m.handleCommitInput(msg)
     case ModeConfirmStage:
@@ -956,6 +1001,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
         if m.cursor > 0 {
             m.cursor--
         }
+
+    // Add path
+    case "a":
+        m.mode = ModeAddPath
+        m.addPathInput = ""
 
     // Open in editor
     case "c":
@@ -1058,6 +1108,31 @@ func (m Model) handleHelp(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
     return m, nil
 }
 
+func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+    switch msg.String() {
+    case "esc":
+        m.mode = ModeNormal
+        m.addPathInput = ""
+    case "enter":
+        if err := config.AppendPath(&m.config, m.addPathInput); err != nil {
+            return m, errMsg(err)
+        }
+        m.statusMsg = "Path added"
+        m.mode = ModeNormal
+        m.addPathInput = ""
+        return m, m.loadRepos()
+    case "backspace":
+        if len(m.addPathInput) > 0 {
+            m.addPathInput = m.addPathInput[:len(m.addPathInput)-1]
+        }
+    default:
+        if len(msg.String()) == 1 {
+            m.addPathInput += msg.String()
+        }
+    }
+    return m, nil
+}
+
 func (m Model) handleConfirmStage(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
     switch msg.String() {
     case "y":
@@ -1130,7 +1205,7 @@ func (m Model) calculateLayout() Layout {
     remaining := w - cursorW - syncW - statusW - gaps
 
     // Compact mode for very small terminals
-    if w < 50 {
+    if w < 40 {
         return Layout{
             Name:   max(remaining-2, 8),
             Branch: 0, // Hide branch in compact mode
@@ -1176,6 +1251,10 @@ func (m Model) View() string {
     switch m.mode {
     case ModeHelp:
         b.WriteString(m.renderHelp())
+    case ModeAddPath:
+        b.WriteString(m.renderRepoList())
+        b.WriteString("\n")
+        b.WriteString(m.renderAddPath())
     case ModeCommitInput:
         b.WriteString(m.renderRepoList())
         b.WriteString("\n")
@@ -1397,6 +1476,18 @@ func (m Model) renderCommitInput() string {
     return b.String()
 }
 
+func (m Model) renderAddPath() string {
+    msg := "Add repo path"
+    boxW := min(m.width-4, 50)
+    inputW := boxW - 4
+    input := m.addPathInput + "█"
+    if len(input) > inputW {
+        input = input[len(input)-inputW:]
+    }
+    body := msg + "\n\n" + input + "\n\n[Enter]=save  [Esc]=cancel"
+    return boxStyle.Width(boxW).Render(body)
+}
+
 func (m Model) renderStageConfirm() string {
     repo := m.currentRepo()
     if repo == nil {
@@ -1427,6 +1518,7 @@ Navigation
   k/↑     Previous repo
 
 Actions
+  a       Add path
   c       Open in editor
   p       Commit + Push (prompts)
   f       Fetch all
@@ -1448,11 +1540,11 @@ Press any key to close...`
 
 func (m Model) renderFooter() string {
     // Left: action hints
-    actions := "[c]ode  [p]ush  [r]efresh  [?]help"
+    actions := "[a]dd path  [c]ode  [p]ush  [r]efresh  [?]help"
 
     // Compact mode: shorter hints
     if m.width < 50 {
-        actions = "c:code p:push r:ref ?:help"
+        actions = "a:add c:code p:push r:ref ?:help"
     }
 
     // Right: status message
@@ -1525,6 +1617,9 @@ func max(a, b int) int {
 
 The UI adapts to any terminal size. No fixed widths - everything scales dynamically.
 
+Primary target: run in the right 1/3 of a terminal while coding on the left 2/3.
+Design for 40-60 columns as the common panel width.
+
 ### Layout Structure
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -1546,29 +1641,43 @@ The UI adapts to any terminal size. No fixed widths - everything scales dynamica
 │ Modified (0)                                                            │
 │ Untracked (0)                                                           │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ [c]ode  [p]ush  [r]efresh  [?]help                                      │
+│ [a]dd path  [c]ode  [p]ush  [r]efresh  [?]help                          │
 └─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Add Path Modal
+
+Press `a` to add a repo path. Show a small modal input box, then append the path to config and rescan.
+Rules: path must already exist; duplicates are ignored.
+
+```
+┌─────────────────────────────────────┐
+│ Add repo path                       │
+│ /Users/you/SourceCode              │
+│                                     │
+│ [Enter]=save  [Esc]=cancel          │
+└─────────────────────────────────────┘
 ```
 
 ### Responsive Column Layout
 
-Columns use **percentage-based widths** that adapt to terminal width:
+Columns use **fixed/flexible widths** tuned for narrow panels (40-60 cols):
 
-| Column | Min Width | Behavior | Priority |
-|--------|-----------|----------|----------|
+| Column | Width | Behavior | Priority |
+|--------|-------|----------|----------|
 | Cursor | 2 chars | Fixed | Always shown |
-| Name | 10 chars | Expands up to 25% of width | High |
-| Branch | 8 chars | Expands up to 20% of width | High |
-| Status | 10 chars | Fixed content, flexible spacing | Medium |
-| Sync | 6 chars | Right-aligned, fixed | High |
+| Name | Flexible | Gets remaining space | High |
+| Branch | Flexible | Uses remainder after Name | High |
+| Status | 8-12 chars | Fixed-ish (icons + counts) | Medium |
+| Sync | 6-8 chars | Right-aligned, fixed-ish | High |
 
-### Breakpoints
+### Breakpoints (target: right 1/3 panel)
 
 | Terminal Width | Behavior |
 |----------------|----------|
-| < 40 chars | Compact mode: hide branch, show only status icons |
-| 40-80 chars | Normal mode: truncate long names with `…` |
-| > 80 chars | Full mode: show complete names, extra padding |
+| < 40 chars | Compact mode: hide branch, shorten status/sync |
+| 40-60 chars | Narrow mode: show branch, truncate names |
+| > 60 chars | Normal mode: show full columns, extra padding |
 
 ### Responsive Implementation
 
@@ -1585,8 +1694,8 @@ func (m Model) calculateLayout() Layout {
     // Flexible columns share remaining space
     remaining := w - cursorW - syncW - statusW - 4 // 4 for gaps
 
-    // Split remaining between name and branch (60/40)
-    nameW := int(float64(remaining) * 0.6)
+    // Split remaining between name and branch (55/45)
+    nameW := int(float64(remaining) * 0.55)
     branchW := remaining - nameW
 
     // Apply minimums
@@ -1773,6 +1882,7 @@ git fetch --all
 |-----|--------|------|
 | `j` / `↓` | Next repo | Normal |
 | `k` / `↑` | Previous repo | Normal |
+| `a` | Add repo path | Normal |
 | `c` | Open repo in editor | Normal |
 | `p` | Start commit+push flow | Normal |
 | `f` | Fetch all remotes | Normal |
@@ -1825,6 +1935,7 @@ scan_depth = 1
 ```
 
 Note: If the config file is missing or `paths` is empty, RepoTUI scans the current working directory (CWD) and shows a banner with the path.
+Note: The UI `[a]dd path` appends a normalized path to `paths` and writes the config file. Path must exist; duplicates are ignored.
 
 **Create config manually:**
 ```bash
@@ -1879,6 +1990,9 @@ lipgloss.AdaptiveColor{Light: "0", Dark: "15"}
 | Path doesn't exist | Skip silently |
 | Not a git repo | Skip silently |
 | No remote upstream | Show "–" for ahead/behind |
+| Add path is empty/invalid | Show error, keep config unchanged |
+| Config write fails | Show error, keep config unchanged |
+| Add path already exists | Show status message, no change |
 | Push fails | Show error message in footer |
 | Network error | Show error, allow retry |
 
@@ -1910,6 +2024,9 @@ go build ./cmd/repotui
 # - Repo with conflicts (create manually)
 
 # 4. Test actions
+# - Press 'a' to add a new path, verify config updated and list rescans
+# - Press 'a' with a missing path, verify error and no change
+# - Press 'a' with an existing path again, verify no duplicate
 # - Press 'c' to open in editor
 # - Press 'r' to refresh
 # - Press 'd' to toggle filter
@@ -1971,6 +2088,7 @@ printf '\e[8;40;120t'  # 120 cols x 40 rows
 | Terminal Size | What to Verify |
 |---------------|----------------|
 | 35x20 (tiny) | Branch hidden, hints shortened |
+| 45x25 (right 1/3) | Works well in 40-60 cols, all key actions visible |
 | 60x25 (narrow) | Names truncated with `…` |
 | 80x30 (normal) | All columns visible |
 | 120x40 (large) | Extra padding, no overflow |

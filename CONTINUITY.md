@@ -1,25 +1,24 @@
 Goal (incl. success criteria):
-- Set up git in current repo, add .gitignore, set remote origin, set main branch, and push to GitHub.
+- Clarify UI responsiveness in REPOTUI_PRODUCT_DOC.md for right 1/3 terminal usage (40–60 cols).
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
-- Do not use destructive commands without explicit user ok.
-- Use danger-full-access; no approval prompts.
+- Preserve 14-section numbering and ToC anchors; Last updated already January 29, 2026.
 
 Key decisions:
-- .gitignore will follow standard Go + OS/editor ignores unless user specifies otherwise.
+- Target panel width 40–60 columns; fixed/flexible layout; compact <40, normal >60.
 
 State:
   Done:
-  - Updated REPOTUI_PRODUCT_DOC.md earlier per clarified decisions.
+  - Added explicit target width note in UI spec and a responsive checklist row for 45x25.
   Now:
-  - Initialize git if needed, add .gitignore, add remote, set main branch, push.
+  - Await user review.
   Next:
-  - Confirm remote/push success; report results.
+  - Apply any further clarity edits if requested.
 
 Open questions (UNCONFIRMED if needed):
-- UNCONFIRMED: Add standard Go .gitignore unless you want a custom one.
+- None.
 
 Working set (files/ids/commands):
-- .gitignore (to add)
+- REPOTUI_PRODUCT_DOC.md
 - CONTINUITY.md
