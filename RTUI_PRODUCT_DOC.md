@@ -827,6 +827,7 @@ var (
 package ui
 
 import (
+    "os"
     "time"
 
     tea "github.com/charmbracelet/bubbletea"
@@ -883,7 +884,13 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) loadRepos() tea.Cmd {
     return func() tea.Msg {
-        repos := git.ScanRepos(m.config.Paths, m.config.ScanDepth)
+        paths := m.config.Paths
+        if len(paths) == 0 {
+            if cwd, err := os.Getwd(); err == nil {
+                paths = []string{cwd}
+            }
+        }
+        repos := git.ScanRepos(paths, m.config.ScanDepth)
         return reposLoadedMsg(repos)
     }
 }
@@ -1232,8 +1239,8 @@ func (m Model) calculateLayout() Layout {
     branchW := remaining - nameW
 
     // Apply minimums
-    nameW = max(nameW, 12)
-    branchW = max(branchW, 10)
+    nameW = max(nameW, 10)
+    branchW = max(branchW, 8)
 
     // For wide terminals, cap maximums
     if w > 120 {
