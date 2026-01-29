@@ -33,6 +33,7 @@ Focus: deterministic logic, no external git.
 - `config.Load/Save`: round-trip, preserves values.
 - UI model state transitions: `ModeAddPath`, `ModeConfirmStage`, `ModeConfirmPull`, `ModeCommitInput`.
 - Watcher logic: debounce coalescing, ignore rules, per-repo event handling.
+- Branch picker helpers: filtering and selection index.
 
 ### 2.2 Integration Tests (git + filesystem)
 Focus: git status counts and safety flows.
@@ -90,8 +91,11 @@ Tests should create and clean fixtures automatically.
 
 - Navigate list with `j/k` at width 45 cols.
 - Add a path using `a`, verify config update and rescan.
-- Commit flow: behind prompt, stage-all prompt, commit message.
+- Commit flow: open commit input, enter message, verify status update.
 - Toggle dirty-only filter.
+- Branch picker: open with `b`, filter list, switch branch, and verify status update.
+- Stash confirm: dirty repo -> `b` -> select branch -> `[s]` stash and switch.
+- Long list: ensure branch picker scrolls and keeps selection visible.
 - Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
 
 ## 6. Responsive Checks (right panel)

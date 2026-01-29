@@ -163,6 +163,58 @@ func FetchAll(path string) error {
 	return cmd.Run()
 }
 
+// ListBranches returns local and remote branch names and current branch.
+func ListBranches(path string) (locals []string, remotes []string, current string, err error) {
+	current = getBranch(path)
+
+	if out, e := gitOutput(path, "branch", "--list"); e == nil {
+		for _, line := range strings.Split(out, "\n") {
+			line = strings.TrimSpace(strings.TrimPrefix(line, "*"))
+			if line == "" {
+				continue
+			}
+			locals = append(locals, line)
+		}
+	} else if err == nil {
+		err = e
+	}
+
+	if out, e := gitOutput(path, "branch", "-r"); e == nil {
+		for _, line := range strings.Split(out, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.Contains(line, "->") {
+				continue
+			}
+			remotes = append(remotes, line)
+		}
+	} else if err == nil {
+		err = e
+	}
+
+	return locals, remotes, current, err
+}
+
+// CheckoutBranch switches to an existing local branch.
+func CheckoutBranch(path, branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
+	cmd.Dir = path
+	return cmd.Run()
+}
+
+// CheckoutRemoteBranch creates a local tracking branch from a remote and checks it out.
+func CheckoutRemoteBranch(path, remote string) error {
+	cmd := exec.Command("git", "checkout", "-t", remote)
+	cmd.Dir = path
+	return cmd.Run()
+}
+
+// StashPush stashes changes including untracked files.
+func StashPush(path string) error {
+	cmd := exec.Command("git", "stash", "push", "-u", "-m", "rtui:auto-stash")
+	cmd.Dir = path
+	return cmd.Run()
+}
+
 func OpenInEditor(path, editor string) error {
 	cmd := exec.Command(editor, path)
 	return cmd.Start()

@@ -1,5 +1,5 @@
 Goal (incl. success criteria):
-- Plan modular fsnotify watcher with tests-first and per-phase test+report+doc updates.
+- Implement branch switcher (picker modal) with tests-first, reports, docs.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
@@ -54,13 +54,24 @@ State:
   - Added watcher integration tests.
   - Phase 2 report written.
   - Ran scripts/phase4_tests.sh after Phase 2.
+  - Committed and pushed watcher module + integration changes.
+  - Phase 8 tests added for branch picker helpers.
+  - Phase 8 report written.
+  - Ran scripts/phase4_tests.sh after Phase 8.
+  - Phase 9 branch switcher integrated (UI + git).
+  - Added branch picker integration tests.
+  - Phase 9 report written.
+  - Ran scripts/phase4_tests.sh after Phase 9.
+  - Phase 10 branch picker scrolling implemented.
+  - Phase 10 report written.
+  - Ran scripts/phase4_tests.sh after Phase 10.
   Now:
-  - Commit and push watcher phases (0-2) changes.
+  - Await review; ready to commit/push branch picker updates.
   Next:
-  - Await next request.
+  - Commit and push if requested.
 
 Open questions (UNCONFIRMED if needed):
-- None.
+- None (picker UX + stash + remote tracking confirmed).
 
 Working set (files/ids/commands):
 - internal/ui/view.go

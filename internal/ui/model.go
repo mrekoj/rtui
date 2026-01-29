@@ -11,19 +11,23 @@ import (
 )
 
 type Model struct {
-	repos        []git.Repo
-	config       config.Config
-	cursor       int
-	width        int
-	height       int
-	mode         ViewMode
-	addPathInput string
-	commitMsg    string
-	filterDirty  bool
-	loading      bool
-	statusMsg    string
-	err          error
-	watcher      watch.Runner
+	repos         []git.Repo
+	config        config.Config
+	cursor        int
+	width         int
+	height        int
+	mode          ViewMode
+	addPathInput  string
+	commitMsg     string
+	filterDirty   bool
+	branchItems   []BranchItem
+	branchFilter  string
+	branchCursor  int
+	pendingBranch BranchItem
+	loading       bool
+	statusMsg     string
+	err           error
+	watcher       watch.Runner
 }
 
 // Messages
@@ -39,6 +43,10 @@ type commitDoneMsg string
 type pushDoneMsg string
 type watchEventMsg watch.Event
 type watchErrMsg error
+type branchesLoadedMsg struct {
+	items   []BranchItem
+	current string
+}
 
 type ViewMode int
 
@@ -47,6 +55,8 @@ const (
 	ModeAddPath
 	ModeCommitInput
 	ModeConfirmPull
+	ModeBranchPicker
+	ModeConfirmStash
 	ModeHelp
 )
 

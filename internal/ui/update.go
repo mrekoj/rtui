@@ -45,6 +45,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.watchErrorsCmd()
 	case repoUpdatedMsg:
 		m.applyRepoUpdate(msg.repo)
+		if strings.HasPrefix(m.statusMsg, "Switching") || strings.HasPrefix(m.statusMsg, "Stashing") {
+			m.statusMsg = "Switched to " + msg.repo.Branch
+		}
+		return m, nil
+	case branchesLoadedMsg:
+		m.branchItems = msg.items
+		m.branchFilter = ""
+		m.branchCursor = indexOfBranch(msg.items, msg.current)
 		return m, nil
 	case statusMsg:
 		m.statusMsg = string(msg)
@@ -78,6 +86,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleCommitInput(msg)
 	case ModeConfirmPull:
 		return m.handleConfirmPull(msg)
+	case ModeBranchPicker:
+		return m.handleBranchPicker(msg)
+	case ModeConfirmStash:
+		return m.handleConfirmStash(msg)
 	case ModeHelp:
 		return m.handleHelp(msg)
 	}
@@ -151,6 +163,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return pushDoneMsg(repo.Name)
 			}
+		}
+	case "b":
+		if repo := m.currentRepo(); repo != nil {
+			m.mode = ModeBranchPicker
+			m.statusMsg = "Loading branches..."
+			return m, m.loadBranchesCmd(repo.Path)
 		}
 	case "?":
 		m.mode = ModeHelp

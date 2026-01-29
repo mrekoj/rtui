@@ -77,6 +77,14 @@ func (m Model) View() string {
 		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
 		b.WriteString(m.renderPullConfirm())
+	case ModeBranchPicker:
+		b.WriteString(m.renderRepoList())
+		b.WriteString("\n")
+		b.WriteString(m.renderBranchPicker())
+	case ModeConfirmStash:
+		b.WriteString(m.renderRepoList())
+		b.WriteString("\n")
+		b.WriteString(m.renderStashConfirm())
 	default:
 		b.WriteString(m.renderRepoList())
 		if len(m.visibleRepos()) > 0 && m.height >= 15 {
@@ -322,6 +330,74 @@ func (m Model) renderCommitInput() string {
 	return b.String()
 }
 
+func (m Model) renderBranchPicker() string {
+	var b strings.Builder
+	b.WriteString("Switch branch\n")
+	b.WriteString(footerStyle.Render("Filter: " + m.branchFilter))
+	b.WriteString("\n\n")
+
+	boxW := min(m.width-4, 60)
+	contentW := boxW - 4
+
+	items := m.filteredBranches()
+	maxList := m.height - 8
+	if maxList < 3 {
+		maxList = 3
+	}
+	if maxList > len(items) {
+		maxList = len(items)
+	}
+	showMarkers := len(items) > maxList && maxList > 4
+	if showMarkers {
+		maxList -= 2
+	}
+	start, end := branchWindow(len(items), m.branchCursor, maxList)
+	window := items
+	if len(items) > 0 {
+		window = items[start:end]
+	}
+
+	if showMarkers {
+		b.WriteString(footerStyle.Render("  ↑ more"))
+		b.WriteString("\n")
+	}
+	current := ""
+	if repo := m.currentRepo(); repo != nil {
+		current = repo.Branch
+	}
+	if len(items) == 0 {
+		b.WriteString(footerStyle.Render("  No branches"))
+	} else {
+		for i, item := range window {
+			cursor := "  "
+			if i+start == m.branchCursor {
+				cursor = "→ "
+			}
+			name := item.Name
+			if name == current {
+				name = stagedStyle.Render(name)
+			}
+			line := cursor + truncate(name, contentW-2)
+			b.WriteString(line + "\n")
+		}
+	}
+	if showMarkers {
+		b.WriteString(footerStyle.Render("  ↓ more"))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(footerStyle.Render("[Enter] switch  [Esc] cancel"))
+
+	return boxStyle.Width(boxW).Render(b.String())
+}
+
+func (m Model) renderStashConfirm() string {
+	msg := "Repo has uncommitted changes. Stash and switch?"
+	boxW := min(m.width-4, 60)
+	return boxStyle.Width(boxW).Render(msg + "\n\n[s]tash  [c]ancel")
+}
+
 func (m Model) renderPullConfirm() string {
 	repo := m.currentRepo()
 	if repo == nil {
@@ -343,6 +419,7 @@ Navigation
 Actions
   a       Add path
   c       Commit (stages all)
+  b       Switch branch
   o       Open in editor
   p       Push
   f       Fetch all
@@ -362,9 +439,9 @@ Press any key to close...`
 }
 
 func (m Model) renderFooter() string {
-	actions := "[a]dd path  [c]ommit  [o]pen  [p]ush  [r]efresh  [?]help"
+	actions := "[a]dd path  [c]ommit  [b]ranch  [o]pen  [p]ush  [r]efresh  [?]help"
 	if m.width < 50 {
-		actions = "a:add c:com o:open p:push r:ref ?:help"
+		actions = "a:add c:com b:br o:open p:push r:ref ?:help"
 	}
 
 	return footerStyle.Render(actions)

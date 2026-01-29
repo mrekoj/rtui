@@ -32,6 +32,7 @@ Developers managing multiple git repos (microservices, related projects) waste t
 A single TUI dashboard that:
 - Shows all repos at a glance (name, branch, dirty status)
 - Shows ahead/behind remote counts
+- Switches branches with a picker
 - Allows quick commit and push without leaving the dashboard
 - Opens repos in your editor with one keypress
 
@@ -286,6 +287,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Refresh: `r` triggers rescan and updates header status
 - Auto-refresh (watcher-only): file events trigger per-repo refresh after 500ms debounce
 - Commit: `c` opens commit input; commit auto-stages all
+- Branch switch: `b` opens picker; select branch and switch; remote creates tracking
 - Push: `p` pushes current repo; if behind, prompt to pull
 - Pull: confirmation dialog; after pull, auto-refresh
 - Add path: `a` opens input; append path, rescan
@@ -342,6 +344,42 @@ Rules: path must already exist; duplicates are ignored.
 │ /Users/you/SourceCode              │
 │                                     │
 │ [Enter]=save  [Esc]=cancel          │
+└─────────────────────────────────────┘
+```
+
+### Branch Picker Modal
+
+Press `b` to switch branches for the selected repo.
+
+Behavior:
+- List local branches first, then remotes (grouped by remote prefix).
+- Current branch is highlighted.
+- Type to filter (case-insensitive).
+- Long lists scroll; selection stays visible.
+- `Enter` switches to the selected branch.
+- If dirty: prompt to stash and then switch.
+- Selecting a remote creates a local tracking branch automatically.
+
+```
+┌─────────────────────────────────────┐
+│ Switch branch                       │
+│ Filter: feat                        │
+│                                     │
+│ → feature/auth                      │
+│   feature/api                       │
+│   origin/feature/cli                │
+│                                     │
+│ [Enter]=switch  [Esc]=cancel        │
+└─────────────────────────────────────┘
+```
+
+**Stash confirm**
+```
+┌─────────────────────────────────────┐
+│ Repo has uncommitted changes.       │
+│ Stash and switch?                   │
+│                                     │
+│ [s]tash  [c]ancel                   │
 └─────────────────────────────────────┘
 ```
 
@@ -430,6 +468,11 @@ Commands used internally:
 | `git push` | [git-push](https://git-scm.com/docs/git-push) | Push to remote |
 | `git pull` | [git-pull](https://git-scm.com/docs/git-pull) | Fetch and merge |
 | `git fetch --all` | [git-fetch](https://git-scm.com/docs/git-fetch) | Fetch all remotes |
+| `git branch --list` | [git-branch](https://git-scm.com/docs/git-branch) | List local branches |
+| `git branch -r` | [git-branch](https://git-scm.com/docs/git-branch) | List remote branches |
+| `git checkout <branch>` | [git-checkout](https://git-scm.com/docs/git-checkout) | Switch local branch |
+| `git checkout -t <remote>` | [git-checkout](https://git-scm.com/docs/git-checkout) | Create tracking branch |
+| `git stash push -u` | [git-stash](https://git-scm.com/docs/git-stash) | Stash dirty changes |
 
 Note: `git add -A` runs automatically when the user commits.
 
@@ -466,6 +509,26 @@ git pull
 # Fetch all remotes
 git fetch --all
 # Docs: https://git-scm.com/docs/git-fetch
+
+# List local branches
+git branch --list
+# Docs: https://git-scm.com/docs/git-branch
+
+# List remote branches
+git branch -r
+# Docs: https://git-scm.com/docs/git-branch
+
+# Switch local branch
+git checkout <branch>
+# Docs: https://git-scm.com/docs/git-checkout
+
+# Create tracking branch from remote
+git checkout -t <remote>
+# Docs: https://git-scm.com/docs/git-checkout
+
+# Stash dirty changes (including untracked)
+git stash push -u
+# Docs: https://git-scm.com/docs/git-stash
 ```
 
 **Understanding `@{upstream}`:** See [gitrevisions](https://git-scm.com/docs/gitrevisions#Documentation/gitrevisions.txt-emltaboranchnamegt64telemerename93telemeregt)
@@ -479,6 +542,7 @@ git fetch --all
 | `j` / `↓` | Next repo | Normal |
 | `k` / `↑` | Previous repo | Normal |
 | `a` | Add repo path | Normal |
+| `b` | Switch branch (picker) | Normal |
 | `c` | Commit (stages all) | Normal |
 | `o` | Open repo in editor | Normal |
 | `p` | Push | Normal |
@@ -489,6 +553,10 @@ git fetch --all
 | `q` | Quit | Normal |
 | `Enter` | Confirm commit | Commit Input |
 | `Esc` | Cancel | Commit Input |
+| `Enter` | Switch to selected branch | Branch Picker |
+| `Esc` | Close branch picker | Branch Picker |
+| `s` | Stash and switch | Confirm Stash |
+| `c` | Cancel | Confirm Stash |
 | `y` | Yes (pull) | Confirm Pull |
 | `n` | No (skip pull) | Confirm Pull |
 | `c` | Cancel | Confirm Pull |
@@ -579,6 +647,8 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 | Add path already exists | Show status message, no change |
 | Push fails | Show error message in header status line |
 | Watcher error | Show status warning, rely on manual refresh |
+| Branch switch fails | Show error message, stay on current branch |
+| Stash fails | Show error, keep picker open |
 | Network error | Show error, allow retry |
 
 ### Error Display
