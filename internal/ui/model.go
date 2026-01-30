@@ -17,6 +17,8 @@ type Model struct {
 	width              int
 	height             int
 	mode               ViewMode
+	panelFocus         PanelFocus
+	bottomView         BottomView
 	addPathInput       string
 	commitMsg          string
 	filterDirty        bool
@@ -26,6 +28,9 @@ type Model struct {
 	branchCursor       int
 	branchTab          BranchTab
 	pendingBranch      BranchItem
+	changesScroll      int
+	graphScroll        int
+	graphLines         []string
 	loading            bool
 	statusMsg          string
 	err                error
@@ -49,6 +54,10 @@ type branchesLoadedMsg struct {
 	items   []BranchItem
 	current string
 }
+type graphLoadedMsg struct {
+	lines []string
+	err   error
+}
 
 type ViewMode int
 
@@ -56,18 +65,35 @@ const (
 	ModeNormal ViewMode = iota
 	ModeAddPath
 	ModeCommitInput
-	ModeConfirmPull
 	ModeBranchPicker
 	ModeConfirmStash
 	ModeHelp
 )
 
+type PanelFocus int
+
+const (
+	FocusRepos PanelFocus = iota
+	FocusBottom
+)
+
+type BottomView int
+
+const (
+	BottomChanges BottomView = iota
+	BottomGraph
+)
+
 func NewModel(cfg config.Config) Model {
 	return Model{
-		config:    cfg,
-		cursor:    0,
-		mode:      ModeNormal,
-		branchTab: BranchTabLocal,
+		config:      cfg,
+		cursor:      0,
+		mode:        ModeNormal,
+		panelFocus:  FocusRepos,
+		bottomView:  BottomChanges,
+		branchTab:   BranchTabLocal,
+		changesScroll: 0,
+		graphScroll:   0,
 	}
 }
 

@@ -286,3 +286,19 @@ func gitCmd(path string, args ...string) *exec.Cmd {
 	)
 	return cmd
 }
+
+// GetGraph returns recent commit graph lines for display.
+func GetGraph(path string, limit int) ([]string, error) {
+	if limit <= 0 {
+		limit = 30
+	}
+	out, err := gitOutput(path, "log", "--graph", "--oneline", "-n", strconv.Itoa(limit))
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimRight(out, "\n")
+	if out == "" {
+		return []string{}, nil
+	}
+	return strings.Split(out, "\n"), nil
+}

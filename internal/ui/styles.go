@@ -53,6 +53,9 @@ var (
 	footerStyle = lipgloss.NewStyle().
 			Foreground(colorGray)
 
+	hotkeyStyle = footerStyle.Copy().
+			Foreground(colorCyan)
+
 	inputStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			Padding(0, 1)

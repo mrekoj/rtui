@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"rtui/internal/config"
+	"rtui/internal/git"
 )
 
 func TestToggleDirtyFilter(t *testing.T) {
@@ -79,14 +80,22 @@ func TestAddPathDuplicate(t *testing.T) {
 	}
 }
 
-func TestConfirmPullNo(t *testing.T) {
+func TestPullBlockedWhenDirty(t *testing.T) {
 	m := NewModel(config.DefaultConfig())
-	m.mode = ModeConfirmPull
 
-	m2, _ := m.handleConfirmPull(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	m.repos = []git.Repo{{
+		Name:     "repo",
+		Path:     "/tmp/repo",
+		Modified: 1,
+	}}
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}})
 	m = m2.(Model)
-	if m.mode != ModeNormal {
-		t.Fatalf("expected ModeNormal, got %v", m.mode)
+	if cmd != nil {
+		t.Fatal("expected no cmd when pull is blocked")
+	}
+	if m.statusMsg != "Cannot pull: repo has uncommitted changes" {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
 	}
 }
 
@@ -99,5 +108,104 @@ func TestCommitInputBackspace(t *testing.T) {
 	m = m2.(Model)
 	if m.commitMsg != "a" {
 		t.Fatalf("expected commitMsg 'a', got %q", m.commitMsg)
+	}
+}
+
+func TestPullStartsWhenClean(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.repos = []git.Repo{{
+		Name: "repo",
+		Path: "/tmp/repo",
+	}}
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}})
+	m = m2.(Model)
+	if cmd == nil {
+		t.Fatal("expected pull cmd")
+	}
+	if m.statusMsg != "Pulling..." {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
+	}
+}
+
+func TestPushBlockedWhenBehind(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.repos = []git.Repo{{
+		Name:   "repo",
+		Path:   "/tmp/repo",
+		Behind: 2,
+	}}
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+	m = m2.(Model)
+	if cmd != nil {
+		t.Fatal("expected no cmd when push is blocked")
+	}
+	if m.statusMsg != "Cannot push: behind remote (pull first)" {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
+	}
+}
+
+func TestPushBlockedWhenDirty(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.repos = []git.Repo{{
+		Name:     "repo",
+		Path:     "/tmp/repo",
+		Modified: 1,
+	}}
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+	m = m2.(Model)
+	if cmd != nil {
+		t.Fatal("expected no cmd when push is blocked")
+	}
+	if m.statusMsg != "Cannot push: repo has uncommitted changes" {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
+	}
+}
+
+func TestPushStartsWhenUpToDate(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.repos = []git.Repo{{
+		Name: "repo",
+		Path: "/tmp/repo",
+	}}
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'P'}})
+	m = m2.(Model)
+	if cmd == nil {
+		t.Fatal("expected push cmd")
+	}
+	if m.statusMsg != "Pushing..." {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
+	}
+}
+
+func TestPanelFocusKeys(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+
+	m2, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	m = m2.(Model)
+	if m.panelFocus != FocusBottom {
+		t.Fatalf("expected focus bottom, got %v", m.panelFocus)
+	}
+
+	m2, _ = m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'1'}})
+	m = m2.(Model)
+	if m.panelFocus != FocusRepos {
+		t.Fatalf("expected focus repos, got %v", m.panelFocus)
+	}
+}
+
+func TestBottomViewToggle(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	if m.bottomView != BottomChanges {
+		t.Fatalf("expected default bottom view changes, got %v", m.bottomView)
+	}
+
+	m2, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyTab})
+	m = m2.(Model)
+	if m.bottomView != BottomGraph {
+		t.Fatalf("expected bottom view graph, got %v", m.bottomView)
 	}
 }

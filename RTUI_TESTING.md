@@ -56,10 +56,12 @@ Focus: render stability for right-panel widths.
 | Add path missing | Add non-existent path | Error; no config change |
 | Add path duplicate | Add existing path again | Status message; no change |
 | Add path ok | Add valid existing path | Config saved; rescan |
-| Behind remote | `repo.Behind > 0` then `p` | Prompt pull first |
-| Conflicts | `repo.HasConflict == true` then `p` | Block commit+push |
+| Dirty pull | `repo.IsDirty()` then `p` | Block pull; status message |
+| Dirty push | `repo.IsDirty()` then `P` | Block push; status message |
+| Behind remote | `repo.Behind > 0` then `P` | Block push; status message |
+| Conflicts | `repo.HasConflict == true` then `c`/`p`/`P` | Block commit/pull/push |
 | No upstream | `git rev-list ... @{upstream}` fails | Show "-" for sync |
-| Push/Pull fails | git CLI error | Error message in footer |
+| Push/Pull fails | git CLI error | Error message in header status |
 
 ## 4. Fixture Setup (automated)
 
@@ -90,7 +92,7 @@ Tests should create and clean fixtures automatically.
 ## 5. Manual Smoke (minimum)
 
 - Navigate list with `j/k` at width 45 cols.
-- Add a path using `a`, verify config update and rescan.
+- Add a path using `a`, verify centered modal (~70% width), config update, and rescan.
 - Commit flow: open commit input, enter message, verify status update.
 - Toggle dirty-only filter.
 - Branch picker: open with `b`, filter list, switch branch, and verify status update.
@@ -98,6 +100,8 @@ Tests should create and clean fixtures automatically.
 - Long list: ensure branch picker scrolls and keeps selection visible.
 - Markers: show ↑/↓ only when items are hidden.
 - Tabs: use `Tab` or `l/r` to switch Local/Remote views; filter applies per view.
+- Pull/push: `p` pulls clean repo, `P` pushes when not behind; status updates.
+- Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` focus panels; `j/k` scrolls focused panel.
 - Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
 
 ## 6. Responsive Checks (right panel)
@@ -106,5 +110,6 @@ Tests should create and clean fixtures automatically.
 - 45x25: narrow mode, branch shown, actions visible.
 - 60x25: narrow/normal boundary, truncated names.
 - 80x25: normal layout.
+- Footer action bar never overflows the width; wraps to two lines when needed.
 
-*Last updated: January 29, 2026*
+*Last updated: January 30, 2026*

@@ -39,6 +39,23 @@ func TestGetRepoStatusDirtyAndStaged(t *testing.T) {
 	}
 }
 
+func TestGetGraph(t *testing.T) {
+	dir := t.TempDir()
+	repo := createRepo(t, dir, "graph")
+
+	writeFile(t, filepath.Join(repo, "b.txt"), "second")
+	runGit(t, repo, "add", "b.txt")
+	runGit(t, repo, "commit", "-m", "second")
+
+	lines, err := GetGraph(repo, 10)
+	if err != nil {
+		t.Fatalf("GetGraph: %v", err)
+	}
+	if len(lines) == 0 {
+		t.Fatal("expected graph lines")
+	}
+}
+
 func createRepo(t *testing.T, root, name string) string {
 	repo := filepath.Join(root, name)
 	if err := os.MkdirAll(repo, 0o755); err != nil {

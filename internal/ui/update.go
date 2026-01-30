@@ -25,9 +25,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusMsg = "Refreshed"
 		}
 		if m.watcher != nil {
-			return m, m.watchAddReposCmd(msg.repos)
+			cmds := []tea.Cmd{m.watchAddReposCmd(msg.repos), m.maybeLoadGraph()}
+			return m, tea.Batch(cmds...)
 		}
-		return m, nil
+		return m, m.maybeLoadGraph()
 	case watchStartedMsg:
 		m.watcher = msg.manager
 		cmds := []tea.Cmd{m.watchEventsCmd(), m.watchErrorsCmd()}
@@ -48,12 +49,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if strings.HasPrefix(m.statusMsg, "Switching") || strings.HasPrefix(m.statusMsg, "Stashing") {
 			m.statusMsg = "Switched to " + msg.repo.Branch
 		}
-		return m, nil
+		return m, m.maybeLoadGraph()
 	case branchesLoadedMsg:
 		m.branchItems = msg.items
 		m.branchFilterLocal = ""
 		m.branchFilterRemote = ""
 		m.branchCursor = indexOfBranch(msg.items, msg.current)
+		return m, nil
+	case graphLoadedMsg:
+		if msg.err != nil {
+			m.statusMsg = "Graph error: " + msg.err.Error()
+			return m, nil
+		}
+		m.graphLines = msg.lines
+		if m.graphScroll > maxScroll(len(m.graphLines), m.bottomListMaxLines()) {
+			m.graphScroll = 0
+		}
 		return m, nil
 	case statusMsg:
 		m.statusMsg = string(msg)
@@ -85,8 +96,6 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleAddPath(msg)
 	case ModeCommitInput:
 		return m.handleCommitInput(msg)
-	case ModeConfirmPull:
-		return m.handleConfirmPull(msg)
 	case ModeBranchPicker:
 		return m.handleBranchPicker(msg)
 	case ModeConfirmStash:
@@ -96,19 +105,50 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg.String() {
+	case "1":
+		m.panelFocus = FocusRepos
+		return m, nil
+	case "2":
+		m.panelFocus = FocusBottom
+		return m, nil
 	case "q", "ctrl+c":
 		if m.watcher != nil {
 			_ = m.watcher.Close()
 		}
 		return m, tea.Quit
 	case "j", "down":
+		if m.panelFocus == FocusBottom {
+			m.scrollBottom(1)
+			return m, nil
+		}
 		if m.cursor < len(m.visibleRepos())-1 {
 			m.cursor++
+			m.resetBottomScroll()
+			return m, m.maybeLoadGraph()
 		}
 	case "k", "up":
+		if m.panelFocus == FocusBottom {
+			m.scrollBottom(-1)
+			return m, nil
+		}
 		if m.cursor > 0 {
 			m.cursor--
+			m.resetBottomScroll()
+			return m, m.maybeLoadGraph()
 		}
+	case "pgdown":
+		if m.panelFocus == FocusBottom {
+			m.scrollBottom(5)
+			return m, nil
+		}
+	case "pgup":
+		if m.panelFocus == FocusBottom {
+			m.scrollBottom(-5)
+			return m, nil
+		}
+	case "tab":
+		m.toggleBottomView()
+		return m, m.maybeLoadGraph()
 	case "r":
 		m.loading = true
 		m.statusMsg = "Refreshing..."
@@ -150,11 +190,33 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "p":
 		if repo := m.currentRepo(); repo != nil {
 			if repo.HasConflict {
+				m.statusMsg = "Cannot pull: repo has conflicts"
+				return m, nil
+			}
+			if repo.IsDirty() {
+				m.statusMsg = "Cannot pull: repo has uncommitted changes"
+				return m, nil
+			}
+			m.statusMsg = "Pulling..."
+			return m, func() tea.Msg {
+				if err := git.Pull(repo.Path); err != nil {
+					return errMsg(err)
+				}
+				return pullDoneMsg(repo.Name)
+			}
+		}
+	case "P":
+		if repo := m.currentRepo(); repo != nil {
+			if repo.HasConflict {
 				m.statusMsg = "Cannot push: repo has conflicts"
 				return m, nil
 			}
+			if repo.IsDirty() {
+				m.statusMsg = "Cannot push: repo has uncommitted changes"
+				return m, nil
+			}
 			if repo.Behind > 0 {
-				m.mode = ModeConfirmPull
+				m.statusMsg = "Cannot push: behind remote (pull first)"
 				return m, nil
 			}
 			m.statusMsg = "Pushing..."
@@ -252,27 +314,6 @@ func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		} else if len(msg.String()) == 1 {
 			m.commitMsg += msg.String()
 		}
-	}
-	return m, nil
-}
-
-func (m Model) handleConfirmPull(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "y":
-		repo := m.currentRepo()
-		if repo != nil {
-			m.statusMsg = "Pulling..."
-			m.mode = ModeNormal
-			return m, func() tea.Msg {
-				if err := git.Pull(repo.Path); err != nil {
-					return errMsg(err)
-				}
-				return pullDoneMsg(repo.Name)
-			}
-		}
-	case "n", "c", "esc":
-		m.mode = ModeNormal
-		m.statusMsg = "Pull canceled"
 	}
 	return m, nil
 }

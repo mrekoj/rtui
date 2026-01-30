@@ -32,6 +32,7 @@ Developers managing multiple git repos (microservices, related projects) waste t
 A single TUI dashboard that:
 - Shows all repos at a glance (name, branch, dirty status)
 - Shows ahead/behind remote counts
+- Bottom panel toggles between CHANGES and GRAPH views
 - Switches branches with a picker
 - Allows quick commit and push without leaving the dashboard
 - Opens repos in your editor with one keypress
@@ -170,8 +171,8 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 │                                                              │
 │  User presses 'c' ──► Update() ──► commit input              │
 │                                └─► commit (stage all)       │
-│  User presses 'p' ──► Update() ──► confirm pull (if behind) │
-│                                └─► push                     │
+│  User presses 'p' ──► Update() ──► pull                      │
+│  User presses 'P' ──► Update() ──► push                      │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -230,7 +231,8 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Normal: repo list + changes panel
 - AddPath: add-path modal open
 - CommitInput: commit message input
-- ConfirmPull: pull confirmation dialog
+- BranchPicker: local/remote branch picker
+- ConfirmStash: stash-and-switch confirmation
 - Help: help modal
 
 **State fields**
@@ -243,6 +245,11 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 | addPathInput | Text buffer for add-path |
 | commitMsg | Text buffer for commit message |
 | filterDirty | Show only dirty repos |
+| panelFocus | Which panel is focused (repo list or bottom panel) |
+| bottomView | CHANGES or GRAPH |
+| changesScroll | Scroll offset for changes list |
+| graphScroll | Scroll offset for graph list |
+| graphLines | Cached graph lines for current repo |
 | width / height | Terminal size |
 | statusMsg | Status text shown in header line |
 | loading | True during refresh |
@@ -288,9 +295,10 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Auto-refresh (watcher-only): file events trigger per-repo refresh after 500ms debounce
 - Commit: `c` opens commit input; commit auto-stages all
 - Branch switch: `b` opens picker; select branch and switch; remote creates tracking
-- Push: `p` pushes current repo; if behind, prompt to pull
-- Pull: confirmation dialog; after pull, auto-refresh
+- Pull: `p` pulls current repo; blocked if repo is dirty; after pull, auto-refresh
+- Push: `P` pushes current repo; blocked if dirty or behind; after push, auto-refresh
 - Add path: `a` opens input; append path, rescan
+- Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` switch focus
 
 ### Auto-refresh (watcher-only)
 
@@ -310,11 +318,12 @@ The UI adapts to any terminal size. No fixed widths - everything scales dynamica
 
 Primary target: run in the right 1/3 of a terminal while coding on the left 2/3.
 Design for 40-60 columns as the common panel width.
+Action bar must never overflow; it uses full labels with the hotkey letter colored (cyan) and wraps to two lines when needed.
 
 ### Layout Structure
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ REPOSITORIES                                                Refreshed  │
+│ REPOSITORIES [1]                                          Refreshed    │
 │─────────────────────────────────────────────────────────────────────────│
 │   Name             | Branch         | Status   | Sync                   │
 │ → miwiz-api        | main           | 2M       | ↓3                     │
@@ -322,20 +331,21 @@ Design for 40-60 columns as the common panel width.
 │   miwiz-cms        | develop        | ✓        | -                      │
 │                                                                         │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ CHANGES: miwiz-web (feature/auth)                                       │
+│ CHANGES [2]                                                             │
 │─────────────────────────────────────────────────────────────────────────│
 │ Staged (1)                                                              │
 │   src/components/Header.tsx                                             │
 │ Modified (0)                                                            │
 │ Untracked (0)                                                           │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ [a]dd path  [c]ommit  [o]pen  [p]ush  [r]efresh  [?]help                │
+│ add path   branch   commit   push   open   pull   refresh   ?          │
+│ (hotkey letter is colored; wraps to second line when needed)           │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Add Path Modal
 
-Press `a` to add a repo path. Show a small modal input box, then append the path to config and rescan.
+Press `a` to add a repo path. Show a centered modal input box (about 70% of panel width; clamp to 30-72 cols), then append the path to config and rescan.
 Rules: path must already exist; duplicates are ignored.
 
 ```
@@ -355,6 +365,14 @@ Behavior:
 - Tabs for Local and Remote branches.
 - Local tab shows only local branches; Remote tab shows only remotes.
 - Current branch is highlighted.
+
+### Bottom Panel Toggle
+
+- Bottom panel defaults to CHANGES view.
+- `Tab` toggles CHANGES <-> GRAPH.
+- `1` focuses repo list; `2` focuses bottom panel.
+- `j/k` scrolls the focused panel; `PgUp/PgDn` fast scrolls.
+- GRAPH view shows `git log --graph --oneline` for the selected repo.
 - Type to filter (case-insensitive).
 - Long lists scroll; selection stays visible.
 - Scroll markers appear only when items are hidden above/below.
@@ -465,6 +483,7 @@ Commands used internally:
 | `git status --porcelain=v1` | [git-status](https://git-scm.com/docs/git-status) | Parse file changes |
 | `git rev-parse --abbrev-ref HEAD` | [git-rev-parse](https://git-scm.com/docs/git-rev-parse) | Current branch |
 | `git rev-list --left-right --count HEAD...@{upstream}` | [git-rev-list](https://git-scm.com/docs/git-rev-list) | Get ahead/behind counts |
+| `git log --graph --oneline -n N` | [git-log](https://git-scm.com/docs/git-log) | Graph view lines |
 | `git add -A` | [git-add](https://git-scm.com/docs/git-add) | Stage all changes |
 | `git commit -m "msg"` | [git-commit](https://git-scm.com/docs/git-commit) | Create commit |
 | `git push` | [git-push](https://git-scm.com/docs/git-push) | Push to remote |
@@ -547,10 +566,15 @@ git stash push -u
 | `b` | Switch branch (picker) | Normal |
 | `c` | Commit (stages all) | Normal |
 | `o` | Open repo in editor | Normal |
-| `p` | Push | Normal |
+| `p` | Pull | Normal |
+| `P` | Push | Normal |
 | `f` | Fetch all remotes | Normal |
 | `r` | Refresh status | Normal |
 | `d` | Toggle dirty-only filter | Normal |
+| `1` | Focus repo list | Normal |
+| `2` | Focus bottom panel | Normal |
+| `Tab` | Toggle CHANGES/GRAPH | Normal |
+| `PgUp` / `PgDn` | Fast scroll focused panel | Normal |
 | `?` | Show help | Normal |
 | `q` | Quit | Normal |
 | `Enter` | Confirm commit | Commit Input |
@@ -560,9 +584,6 @@ git stash push -u
 | `Tab` / `l` / `r` | Toggle Local/Remote view | Branch Picker |
 | `s` | Stash and switch | Confirm Stash |
 | `c` | Cancel | Confirm Stash |
-| `y` | Yes (pull) | Confirm Pull |
-| `n` | No (skip pull) | Confirm Pull |
-| `c` | Cancel | Confirm Pull |
 
 ---
 
@@ -648,8 +669,12 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 | Add path is empty/invalid | Show error, keep config unchanged |
 | Config write fails | Show error, keep config unchanged |
 | Add path already exists | Show status message, no change |
+| Pull blocked (dirty/conflict) | Show status message; no action |
+| Push blocked (dirty/behind/conflict) | Show status message; no action |
+| Pull fails | Show error message in header status line |
 | Push fails | Show error message in header status line |
 | Watcher error | Show status warning, rely on manual refresh |
+| Graph load fails | Show status message, keep current view |
 | Branch switch fails | Show error message, stay on current branch |
 | Stash fails | Show error, keep picker open |
 | Network error | Show error, allow retry |
@@ -877,4 +902,4 @@ Total: ~950 lines of Go code
 
 ---
 
-*Last updated: January 29, 2026*
+*Last updated: January 30, 2026*

@@ -1,6 +1,11 @@
 package ui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 func TestCalculateLayoutCompact(t *testing.T) {
 	m := Model{width: 35}
@@ -44,5 +49,46 @@ func TestCalculateLayoutNormal(t *testing.T) {
 	}
 	if layout.Name <= 0 {
 		t.Fatalf("expected name width > 0, got %d", layout.Name)
+	}
+}
+
+func TestFooterActionsFitWidth(t *testing.T) {
+	widths := []int{20, 30, 40, 60}
+	for _, w := range widths {
+		m := Model{width: w}
+		line := m.renderFooter()
+		if lipgloss.Width(line) > w {
+			t.Fatalf("footer width %d exceeds %d", lipgloss.Width(line), w)
+		}
+		if w > 0 && line == "" {
+			t.Fatalf("expected footer text for width %d", w)
+		}
+	}
+}
+
+func TestFooterWrapsAtNarrowWidth(t *testing.T) {
+	m := Model{width: 40}
+	line := m.renderFooter()
+	if !strings.Contains(line, "\n") {
+		t.Fatal("expected footer to wrap at width 40")
+	}
+}
+
+func TestAddPathModalCentered(t *testing.T) {
+	m := Model{width: 80}
+	out := m.renderAddPath()
+	lines := strings.Split(out, "\n")
+	if len(lines) == 0 {
+		t.Fatal("expected modal output")
+	}
+	first := lines[0]
+	leftPad := len(first) - len(strings.TrimLeft(first, " "))
+	if leftPad == 0 {
+		t.Fatal("expected modal to be centered with left padding")
+	}
+	for _, line := range lines {
+		if lipgloss.Width(line) > m.width {
+			t.Fatalf("line width %d exceeds %d", lipgloss.Width(line), m.width)
+		}
 	}
 }

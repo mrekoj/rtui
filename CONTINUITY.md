@@ -1,5 +1,5 @@
 Goal (incl. success criteria):
-- Add Local/Remote branch picker tabs with Tab toggle and l/r shortcuts.
+- Add UX action for Sync behind/ahead counts with lazygit-style keys.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
@@ -9,6 +9,9 @@ Constraints/Assumptions:
 Key decisions:
 - Treat bracketed paste as KeyRunes with Paste=true; strip newlines.
 - Render footer after padding content to terminal height.
+- Sync keys: p = pull, P = push (match lazygit).
+- Pull when dirty: block and show warning in status area.
+- Push when dirty: block and show warning in status area.
 
 State:
   Done:
@@ -74,16 +77,59 @@ State:
   - Phase 13 marker visibility fix for branch picker.
   - Phase 13 report written.
   - Ran scripts/phase4_tests.sh after Phase 13.
+  - Committed and pushed tabbed picker + marker updates.
+  - Remapped sync keys: p pull, P push; removed pull confirm dialog.
+  - Added guards: pull blocked when dirty/conflict; push blocked when behind/conflict.
+  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for new sync UX.
+  - Added tests for pull/push guards and happy paths.
+  - Phase 14 report written.
+  - Ran scripts/phase4_tests.sh after sync changes.
+  - Added dirty-push guard (block with status message).
+  - Added dirty-push test.
+  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for dirty-push guard.
+  - Phase 15 report written.
+  - Ran scripts/phase4_tests.sh after dirty-push guard.
+  - Footer actions now collapse to fit width; no overflow.
+  - Added footer width test.
+  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for responsive footer.
+  - Phase 16 report written.
+  - Ran scripts/phase4_tests.sh after footer change.
+  - Footer switched to compact bracketed hotkeys with underlined keys.
+  - Footer wraps to two lines and avoids overflow (drops extras if needed, keeps help).
+  - Added footer wrap test; updated docs and Phase 17 report.
+  - Ran scripts/phase4_tests.sh after footer wrap fix.
+  - Footer switched to full labels with colored hotkey letter; brackets/underline removed.
+  - Updated RTUI_PRODUCT_DOC.md and Phase 18 report.
+  - Ran scripts/phase4_tests.sh after footer color change.
+  - Footer labels updated to full words (add path, branch, commit, push, open, pull, refresh, ?).
+  - Footer uses wider fixed spacing; wraps to two lines if needed.
+  - RTUI_PRODUCT_DOC.md updated and Phase 19 report written.
+  - Ran scripts/phase4_tests.sh after footer label update.
+  - Add Path modal centered at ~70% width (clamped).
+  - Added centered modal test and updated docs/testing notes.
+  - Phase 20 report written.
+  - Ran scripts/phase4_tests.sh after add-path modal change.
+  - Added panel focus (1/2), CHANGES/GRAPH toggle (Tab), and bottom panel scrolling.
+  - Added git log graph fetch and graph list rendering.
+  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for new panel behavior.
+  - Added tests for panel focus/toggle and git graph.
+  - Phase 21 report written.
+  - Ran scripts/phase4_tests.sh after panel/graph changes.
   Now:
-  - Await review; ready to commit/push marker fix.
+  - Await user approval for panel focus + graph toggle behavior.
   Next:
-  - Commit and push if requested.
+  - Implement tests-first if approved.
 
 Open questions (UNCONFIRMED if needed):
-- None.
+- Add explicit status for "no upstream" / "nothing to push"? (UNCONFIRMED)
 
 Working set (files/ids/commands):
 - internal/ui/view.go
-- internal/ui/styles.go
+- internal/ui/update.go
+- internal/ui/panel.go
+- internal/ui/graph_cmds.go
+- internal/git/git.go
 - RTUI_PRODUCT_DOC.md
+- RTUI_TESTING.md
+- reports/PHASE-21.md
 - CONTINUITY.md

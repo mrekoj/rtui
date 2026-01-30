@@ -73,10 +73,6 @@ func (m Model) View() string {
 		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
 		b.WriteString(m.renderCommitInput())
-	case ModeConfirmPull:
-		b.WriteString(m.renderRepoList())
-		b.WriteString("\n")
-		b.WriteString(m.renderPullConfirm())
 	case ModeBranchPicker:
 		b.WriteString(m.renderRepoList())
 		b.WriteString("\n")
@@ -87,9 +83,10 @@ func (m Model) View() string {
 		b.WriteString(m.renderStashConfirm())
 	default:
 		b.WriteString(m.renderRepoList())
-		if len(m.visibleRepos()) > 0 && m.height >= 15 {
+		bottomMax := m.bottomPanelMaxLines()
+		if len(m.visibleRepos()) > 0 && bottomMax >= 3 {
 			b.WriteString("\n")
-			b.WriteString(m.renderChangesPanel())
+			b.WriteString(m.renderBottomPanel(bottomMax))
 		}
 	}
 
@@ -130,10 +127,11 @@ func (m Model) renderRepoList() string {
 }
 
 func (m Model) renderRepoSectionHeader() string {
-	header := "REPOSITORIES"
+	title := "REPOSITORIES"
 	if m.filterDirty {
-		header += " (dirty only)"
+		title += " (dirty only)"
 	}
+	header := sectionTitleStyle.Render(title) + " " + panelLabel("1", m.panelFocus == FocusRepos)
 
 	status := m.statusMsg
 	if m.loading {
@@ -152,12 +150,19 @@ func (m Model) renderRepoSectionHeader() string {
 	if lipgloss.Width(header) > maxLeft {
 		header = truncate(header, maxLeft)
 	}
-	left := sectionTitleStyle.Render(header)
-	gap := m.width - lipgloss.Width(left) - rightW
+	gap := m.width - lipgloss.Width(header) - rightW
 	if gap < 1 {
 		gap = 1
 	}
-	return left + strings.Repeat(" ", gap) + right
+	return header + strings.Repeat(" ", gap) + right
+}
+
+func panelLabel(key string, focused bool) string {
+	label := "[" + key + "]"
+	if focused {
+		return selectedRepoStyle.Render(label)
+	}
+	return footerStyle.Render(label)
 }
 
 func (m Model) renderRepoHeader(layout Layout) string {
@@ -251,15 +256,22 @@ func (m Model) renderRepoLine(repo git.Repo, isCursor bool, layout Layout) strin
 	return line
 }
 
-func (m Model) renderChangesPanel() string {
+func (m Model) renderBottomPanel(maxLines int) string {
+	if m.bottomView == BottomGraph {
+		return m.renderGraphPanel(maxLines)
+	}
+	return m.renderChangesPanel(maxLines)
+}
+
+func (m Model) renderChangesPanel(maxLines int) string {
 	repo := m.currentRepo()
 	if repo == nil {
 		return ""
 	}
 
 	var b strings.Builder
-	header := fmt.Sprintf("CHANGES: %s (%s)", repo.Name, repo.Branch)
-	b.WriteString(sectionTitleStyle.Render(header))
+	header := sectionTitleStyle.Render("CHANGES") + " " + panelLabel("2", m.panelFocus == FocusBottom)
+	b.WriteString(header)
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("─", m.width))
 	b.WriteString("\n")
@@ -279,39 +291,33 @@ func (m Model) renderChangesPanel() string {
 		}
 	}
 
-	maxPathW := m.width - 4
-
-	b.WriteString(stagedStyle.Render(fmt.Sprintf("Staged (%d)", len(staged))))
-	b.WriteString("\n")
-	for _, f := range staged {
-		b.WriteString("  " + truncatePath(f.Path, maxPathW) + "\n")
+	lines := m.changesLines(staged, modified, untracked)
+	contentMax := maxLines - 2
+	if contentMax < 1 {
+		return b.String()
 	}
-
-	b.WriteString(modifiedStyle.Render(fmt.Sprintf("Modified (%d)", len(modified))))
-	b.WriteString("\n")
-	for _, f := range modified {
-		b.WriteString("  " + truncatePath(f.Path, maxPathW) + "\n")
+	start := clamp(m.changesScroll, 0, maxScroll(len(lines), contentMax))
+	end := min(start+contentMax, len(lines))
+	for _, line := range lines[start:end] {
+		b.WriteString(line)
+		b.WriteString("\n")
 	}
-
-	b.WriteString(untrackedStyle.Render(fmt.Sprintf("Untracked (%d)", len(untracked))))
-	b.WriteString("\n")
-	for _, f := range untracked {
-		b.WriteString("  " + truncatePath(f.Path, maxPathW) + "\n")
-	}
-
 	return b.String()
 }
 
 func (m Model) renderAddPath() string {
 	msg := "Add repo path"
-	boxW := min(m.width-4, 50)
+	maxW := max(m.width-4, 20)
+	targetW := int(float64(m.width) * 0.7)
+	boxW := min(maxW, max(30, targetW))
 	inputW := boxW - 4
 	input := m.addPathInput + "█"
 	if len(input) > inputW {
 		input = input[len(input)-inputW:]
 	}
 	body := msg + "\n\n" + input + "\n\n[Enter]=save  [Esc]=cancel"
-	return boxStyle.Width(boxW).Render(body)
+	modal := boxStyle.Width(boxW).Render(body)
+	return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, modal)
 }
 
 func (m Model) renderCommitInput() string {
@@ -328,6 +334,97 @@ func (m Model) renderCommitInput() string {
 	b.WriteString("\n")
 	b.WriteString(footerStyle.Render("[Enter] commit  [Esc] cancel"))
 	return b.String()
+}
+
+func (m Model) renderGraphPanel(maxLines int) string {
+	repo := m.currentRepo()
+	if repo == nil {
+		return ""
+	}
+	var b strings.Builder
+	header := sectionTitleStyle.Render("GRAPH") + " " + panelLabel("2", m.panelFocus == FocusBottom)
+	b.WriteString(header)
+	b.WriteString("\n")
+	b.WriteString(strings.Repeat("─", m.width))
+	b.WriteString("\n")
+
+	contentMax := maxLines - 2
+	if contentMax < 1 {
+		return b.String()
+	}
+	lines := m.graphLines
+	start := clamp(m.graphScroll, 0, maxScroll(len(lines), contentMax))
+	end := min(start+contentMax, len(lines))
+	if len(lines) == 0 {
+		b.WriteString(footerStyle.Render("  No commits"))
+		return b.String()
+	}
+	for _, line := range lines[start:end] {
+		b.WriteString(truncate(line, m.width))
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func (m Model) changesLines(staged, modified, untracked []git.ChangedFile) []string {
+	maxPathW := m.width - 4
+	lines := []string{
+		stagedStyle.Render(fmt.Sprintf("Staged (%d)", len(staged))),
+	}
+	for _, f := range staged {
+		lines = append(lines, "  "+truncatePath(f.Path, maxPathW))
+	}
+	lines = append(lines, modifiedStyle.Render(fmt.Sprintf("Modified (%d)", len(modified))))
+	for _, f := range modified {
+		lines = append(lines, "  "+truncatePath(f.Path, maxPathW))
+	}
+	lines = append(lines, untrackedStyle.Render(fmt.Sprintf("Untracked (%d)", len(untracked))))
+	for _, f := range untracked {
+		lines = append(lines, "  "+truncatePath(f.Path, maxPathW))
+	}
+	return lines
+}
+
+func (m Model) changesTotalLines() int {
+	repo := m.currentRepo()
+	if repo == nil {
+		return 0
+	}
+	staged := 0
+	modified := 0
+	untracked := 0
+	for _, f := range repo.ChangedFiles {
+		switch f.Status {
+		case git.StatusStaged:
+			staged++
+		case git.StatusModified:
+			modified++
+		case git.StatusUntracked:
+			untracked++
+		}
+	}
+	return 3 + staged + modified + untracked
+}
+
+func (m Model) bottomPanelMaxLines() int {
+	repoLines := m.repoListLineCount()
+	maxLines := m.height - repoLines - 1
+	if maxLines <= 0 {
+		return 0
+	}
+	maxLines-- // gap between panels
+	if maxLines < 0 {
+		return 0
+	}
+	return maxLines
+}
+
+func (m Model) repoListLineCount() int {
+	repos := m.visibleRepos()
+	if len(repos) == 0 {
+		return 3
+	}
+	return 4 + len(repos)
 }
 
 func (m Model) renderBranchPicker() string {
@@ -398,17 +495,6 @@ func (m Model) renderStashConfirm() string {
 	return boxStyle.Width(boxW).Render(msg + "\n\n[s]tash  [c]ancel")
 }
 
-func (m Model) renderPullConfirm() string {
-	repo := m.currentRepo()
-	if repo == nil {
-		return ""
-	}
-
-	msg := fmt.Sprintf("Repo is %d commits behind. Pull first?", repo.Behind)
-	boxW := min(m.width-4, 50)
-	return boxStyle.Width(boxW).Render(msg + "\n\n[y]es  [n]o  [c]ancel")
-}
-
 func (m Model) renderHelp() string {
 	help := `KEYBINDINGS
 
@@ -421,9 +507,15 @@ Actions
   c       Commit (stages all)
   b       Switch branch
   o       Open in editor
-  p       Push
+  p       Pull
+  P       Push
   f       Fetch all
   r       Refresh
+
+Panels
+  1       Focus repo list
+  2       Focus bottom panel
+  Tab     Toggle Changes/Graph
 
 Filters
   d       Toggle dirty-only
@@ -439,12 +531,171 @@ Press any key to close...`
 }
 
 func (m Model) renderFooter() string {
-	actions := "[a]dd path  [c]ommit  [b]ranch  [o]pen  [p]ush  [r]efresh  [?]help"
-	if m.width < 50 {
-		actions = "a:add c:com b:br o:open p:push r:ref ?:help"
+	return footerActions(m.width)
+}
+
+type footerToken struct {
+	plain  string
+	styled string
+}
+
+func footerActions(width int) string {
+	if width <= 0 {
+		return ""
 	}
 
-	return footerStyle.Render(actions)
+	tokens := footerTokens()
+	gap := 3
+	lines := wrapFooterTokens(tokens, width, 2, gap)
+	if len(lines) == 0 {
+		return ""
+	}
+
+	styledSpace := footerStyle.Render(strings.Repeat(" ", gap))
+	var out []string
+	for _, lineTokens := range lines {
+		if len(lineTokens) == 0 {
+			continue
+		}
+		line := lineTokens[0].styled
+		for i := 1; i < len(lineTokens); i++ {
+			line += styledSpace + lineTokens[i].styled
+		}
+		out = append(out, line)
+	}
+	return strings.Join(out, "\n")
+}
+
+func footerTokens() []footerToken {
+	return []footerToken{
+		footerTokenHotkey("a", "add path"),
+		footerTokenHotkey("b", "branch"),
+		footerTokenHotkey("c", "commit"),
+		footerTokenHotkey("P", "push"),
+		footerTokenHotkey("o", "open"),
+		footerTokenHotkey("p", "pull"),
+		footerTokenHotkey("r", "refresh"),
+		footerTokenHotkey("?", "?"),
+	}
+}
+
+func footerTokenHotkey(key, label string) footerToken {
+	keyLower := strings.ToLower(key)
+	labelLower := strings.ToLower(label)
+	index := strings.Index(labelLower, keyLower)
+	if index < 0 {
+		plain := key + label
+		styled := hotkeyStyle.Render(key) + footerStyle.Render(label)
+		return footerToken{plain: plain, styled: styled}
+	}
+
+	prefix := label[:index]
+	match := label[index : index+1]
+	suffix := label[index+1:]
+
+	plain := label
+	styled := footerStyle.Render(prefix) + hotkeyStyle.Render(match) + footerStyle.Render(suffix)
+	return footerToken{plain: plain, styled: styled}
+}
+
+func wrapFooterTokens(tokens []footerToken, width, maxLines, gap int) [][]footerToken {
+	if width <= 0 {
+		return nil
+	}
+	var lines [][]footerToken
+	var current []footerToken
+	currentWidth := 0
+
+	for _, tok := range tokens {
+		tokW := lipgloss.Width(tok.plain)
+		if len(current) == 0 {
+			current = append(current, tok)
+			currentWidth = tokW
+			continue
+		}
+		if currentWidth+gap+tokW <= width {
+			current = append(current, tok)
+			currentWidth += gap + tokW
+			continue
+		}
+		lines = append(lines, current)
+		current = []footerToken{tok}
+		currentWidth = tokW
+	}
+	if len(current) > 0 {
+		lines = append(lines, current)
+	}
+
+	if maxLines > 0 && len(lines) > maxLines {
+		line1, line2 := packFooterTokens(tokens, width, gap)
+		lines = [][]footerToken{line1, line2}
+	}
+
+	return lines
+}
+
+func packFooterTokens(tokens []footerToken, width, gap int) ([]footerToken, []footerToken) {
+	var line1 []footerToken
+	var line2 []footerToken
+	w1 := 0
+	w2 := 0
+
+	for _, tok := range tokens {
+		tokW := lipgloss.Width(tok.plain)
+		if len(line1) == 0 || w1+gap+tokW <= width {
+			if len(line1) == 0 {
+				line1 = append(line1, tok)
+				w1 = tokW
+			} else {
+				line1 = append(line1, tok)
+				w1 += gap + tokW
+			}
+			continue
+		}
+		if len(line2) == 0 || w2+gap+tokW <= width {
+			if len(line2) == 0 {
+				line2 = append(line2, tok)
+				w2 = tokW
+			} else {
+				line2 = append(line2, tok)
+				w2 += gap + tokW
+			}
+		}
+	}
+
+	if len(tokens) == 0 {
+		return line1, line2
+	}
+	help := tokens[len(tokens)-1]
+	if !containsFooterToken(line1, help) && !containsFooterToken(line2, help) {
+		helpW := lipgloss.Width(help.plain)
+		if helpW <= width {
+			for len(line2) > 0 && w2+gap+helpW > width {
+				removed := line2[len(line2)-1]
+				w2 -= lipgloss.Width(removed.plain)
+				if len(line2) > 1 {
+					w2 -= gap
+				}
+				line2 = line2[:len(line2)-1]
+			}
+			if len(line2) == 0 {
+				line2 = append(line2, help)
+			} else if w2+gap+helpW <= width {
+				line2 = append(line2, help)
+			}
+		}
+	}
+
+	return line1, line2
+}
+
+func containsFooterToken(tokens []footerToken, target footerToken) bool {
+	for _, tok := range tokens {
+		if tok.plain == target.plain {
+			return true
+		}
+	}
+	return false
 }
 
 func padToBottom(height int, body, footer string) string {
