@@ -299,6 +299,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Push: `P` pushes current repo; blocked if dirty or behind; after push, auto-refresh
 - Add path: `a` opens input; append path, rescan
 - Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` switch focus
+- Settings: `s` opens the config file in VS Code
 
 ### Auto-refresh (watcher-only)
 
@@ -566,6 +567,7 @@ git stash push -u
 | `b` | Switch branch (picker) | Normal |
 | `c` | Commit (stages all) | Normal |
 | `o` | Open repo in editor | Normal |
+| `s` | Open settings (config.toml) in VS Code | Normal |
 | `p` | Pull | Normal |
 | `P` | Push | Normal |
 | `f` | Fetch all remotes | Normal |
@@ -592,6 +594,8 @@ git stash push -u
 > 📖 Reference: [TOML Specification](https://toml.io/en/), [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html), [TOML Validator](https://www.toml.io/en/validator)
 
 **Location:** `~/.config/rtui/config.toml`
+
+Tip: Press `s` to open the config file in VS Code.
 
 ```toml
 # Folders to scan for git repos

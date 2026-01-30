@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -108,5 +109,43 @@ func TestLoadNormalizesPaths(t *testing.T) {
 	want := filepath.Join(home, "repo")
 	if len(loaded.Paths) != 1 || loaded.Paths[0] != want {
 		t.Fatalf("expected %q, got %v", want, loaded.Paths)
+	}
+}
+
+func TestConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	got := ConfigPath()
+	want := filepath.Join(home, ".config", "rtui", "config.toml")
+	if got != want {
+		t.Fatalf("ConfigPath() = %q, want %q", got, want)
+	}
+}
+
+func TestSaveWritesMultilinePaths(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	cfg := DefaultConfig()
+	cfg.Paths = []string{
+		filepath.Join(home, "repo1"),
+		filepath.Join(home, "repo2"),
+	}
+
+	if err := Save(cfg); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	content, err := os.ReadFile(ConfigPath())
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	got := string(content)
+	if !strings.Contains(got, "paths = [\n") {
+		t.Fatalf("expected multiline paths, got:\n%s", got)
+	}
+	if !strings.Contains(got, "repo1") || !strings.Contains(got, "repo2") {
+		t.Fatalf("expected repo paths in config, got:\n%s", got)
 	}
 }

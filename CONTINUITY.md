@@ -115,8 +115,17 @@ State:
   - Added tests for panel focus/toggle and git graph.
   - Phase 21 report written.
   - Ran scripts/phase4_tests.sh after panel/graph changes.
+  - Added `s` key to open config file in VS Code.
+  - Added config path helper and tests.
+  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for settings key.
+  - Phase 22 report written.
+  - Ran scripts/phase4_tests.sh after settings key.
+  - Config Save now writes paths as multi-line array.
+  - Added tests for multiline config output.
+  - Phase 23 report written.
+  - Ran scripts/phase4_tests.sh after config formatting change.
   Now:
-  - Await user approval for panel focus + graph toggle behavior.
+  - Formatted current config file to multiline paths.
   Next:
   - Implement tests-first if approved.
 
@@ -129,7 +138,9 @@ Working set (files/ids/commands):
 - internal/ui/panel.go
 - internal/ui/graph_cmds.go
 - internal/git/git.go
+- internal/config/config.go
+- internal/config/config_test.go
 - RTUI_PRODUCT_DOC.md
 - RTUI_TESTING.md
-- reports/PHASE-21.md
+- reports/PHASE-23.md
 - CONTINUITY.md

@@ -102,6 +102,7 @@ Tests should create and clean fixtures automatically.
 - Tabs: use `Tab` or `l/r` to switch Local/Remote views; filter applies per view.
 - Pull/push: `p` pulls clean repo, `P` pushes when not behind; status updates.
 - Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` focus panels; `j/k` scrolls focused panel.
+- Settings: press `s` and verify config file opens in VS Code.
 - Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
 
 ## 6. Responsive Checks (right panel)

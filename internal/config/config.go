@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
@@ -39,6 +40,11 @@ func configPath() string {
 	return filepath.Join(home, ".config", "rtui", "config.toml")
 }
 
+// ConfigPath returns the resolved config file path.
+func ConfigPath() string {
+	return configPath()
+}
+
 // Load reads config from file, returns defaults if not found.
 func Load() (Config, error) {
 	cfg := DefaultConfig()
@@ -65,13 +71,8 @@ func Save(cfg Config) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	return toml.NewEncoder(f).Encode(cfg)
+	content := formatConfig(cfg)
+	return os.WriteFile(path, []byte(content), 0o644)
 }
 
 // AppendPath normalizes and appends a path, then saves config.
@@ -104,4 +105,33 @@ func NormalizePath(path string) string {
 		p = filepath.Join(home, p[1:])
 	}
 	return filepath.Clean(p)
+}
+
+func formatConfig(cfg Config) string {
+	var b strings.Builder
+	if len(cfg.Paths) == 0 {
+		b.WriteString("paths = []\n\n")
+	} else {
+		b.WriteString("paths = [\n")
+		for _, p := range cfg.Paths {
+			b.WriteString("  ")
+			b.WriteString(strconv.Quote(p))
+			b.WriteString(",\n")
+		}
+		b.WriteString("]\n\n")
+	}
+
+	b.WriteString("editor = ")
+	b.WriteString(strconv.Quote(cfg.Editor))
+	b.WriteString("\n")
+	b.WriteString("refresh_interval = ")
+	b.WriteString(strconv.Itoa(cfg.RefreshInterval))
+	b.WriteString("\n")
+	b.WriteString("show_clean = ")
+	b.WriteString(strconv.FormatBool(cfg.ShowClean))
+	b.WriteString("\n")
+	b.WriteString("scan_depth = ")
+	b.WriteString(strconv.Itoa(cfg.ScanDepth))
+	b.WriteString("\n")
+	return b.String()
 }

@@ -177,6 +177,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			_ = git.OpenInEditor(repo.Path, m.config.Editor)
 			m.statusMsg = "Opened " + repo.Name + " in " + m.config.Editor
 		}
+	case "s":
+		path := config.ConfigPath()
+		m.statusMsg = "Opening settings in VS Code..."
+		return m, func() tea.Msg {
+			if err := git.OpenInEditor(path, "code"); err != nil {
+				return errMsg(err)
+			}
+			return statusMsg("Opened settings in VS Code")
+		}
 	case "f":
 		if repo := m.currentRepo(); repo != nil {
 			m.statusMsg = "Fetching..."

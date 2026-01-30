@@ -507,6 +507,7 @@ Actions
   c       Commit (stages all)
   b       Switch branch
   o       Open in editor
+  s       Settings (open config in VS Code)
   p       Pull
   P       Push
   f       Fetch all

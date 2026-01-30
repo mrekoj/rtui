@@ -209,3 +209,16 @@ func TestBottomViewToggle(t *testing.T) {
 		t.Fatalf("expected bottom view graph, got %v", m.bottomView)
 	}
 }
+
+func TestOpenSettingsKey(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+
+	m2, cmd := m.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = m2.(Model)
+	if cmd == nil {
+		t.Fatal("expected settings cmd")
+	}
+	if m.statusMsg != "Opening settings in VS Code..." {
+		t.Fatalf("unexpected status: %q", m.statusMsg)
+	}
+}
