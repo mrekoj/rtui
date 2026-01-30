@@ -1,5 +1,5 @@
 Goal (incl. success criteria):
-- Reorganize docs into docs/ and update all references; commit+push.
+- Add dist/ and CONTINUITY.md to .gitignore; commit+push if requested.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
@@ -14,15 +14,18 @@ State:
   Done:
   - Docs moved into docs/ and references updated.
   - Verified references via rg; checked git status.
+  - Committed and pushed docs reorg (commit c732248).
+  - Added dist/ and CONTINUITY.md to .gitignore.
   Now:
-  - Await commit+push for docs reorg; untracked include README.md, docs/*, dist/*.
+  - Await commit+push request.
   Next:
-  - Await user follow-up requests.
+  - Commit+push if requested.
 
 Open questions (UNCONFIRMED if needed):
 - None.
 
 Working set (files/ids/commands):
+- .gitignore
 - docs/RTUI_PRODUCT_DOC.md
 - docs/RTUI_TESTING.md
 - docs/RTUI_PHASES.md

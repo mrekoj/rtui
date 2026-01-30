@@ -20,6 +20,10 @@
 
 # Local build artifacts
 rtui
+dist/
+
+# Local state
+CONTINUITY.md
 
 # OS / editor
 .DS_Store
