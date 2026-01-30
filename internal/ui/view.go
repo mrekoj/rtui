@@ -332,8 +332,15 @@ func (m Model) renderCommitInput() string {
 
 func (m Model) renderBranchPicker() string {
 	var b strings.Builder
-	b.WriteString("Switch branch\n")
-	b.WriteString(footerStyle.Render("Filter: " + m.branchFilter))
+	tabLocal := "Local"
+	tabRemote := "Remote"
+	if m.branchTab == BranchTabLocal {
+		tabLocal = "[" + tabLocal + "]"
+	} else {
+		tabRemote = "[" + tabRemote + "]"
+	}
+	b.WriteString("Switch branch  " + tabLocal + " " + tabRemote + "\n")
+	b.WriteString(footerStyle.Render("Filter: " + m.branchFilter()))
 	b.WriteString("\n\n")
 
 	boxW := min(m.width-4, 60)
@@ -344,20 +351,13 @@ func (m Model) renderBranchPicker() string {
 	if maxList < 3 {
 		maxList = 3
 	}
-	if maxList > len(items) {
-		maxList = len(items)
-	}
-	showMarkers := len(items) > maxList && maxList > 4
-	if showMarkers {
-		maxList -= 2
-	}
-	start, end := branchWindow(len(items), m.branchCursor, maxList)
+	start, end, showTop, showBottom := branchWindowInfo(len(items), m.branchCursor, maxList)
 	window := items
 	if len(items) > 0 {
 		window = items[start:end]
 	}
 
-	if showMarkers {
+	if showTop {
 		b.WriteString(footerStyle.Render("  ↑ more"))
 		b.WriteString("\n")
 	}
@@ -381,7 +381,7 @@ func (m Model) renderBranchPicker() string {
 			b.WriteString(line + "\n")
 		}
 	}
-	if showMarkers {
+	if showBottom {
 		b.WriteString(footerStyle.Render("  ↓ more"))
 		b.WriteString("\n")
 	}

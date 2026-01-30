@@ -32,6 +32,9 @@ func TestBranchesLoadedSetsCursorToCurrent(t *testing.T) {
 	if m.branchCursor != 1 {
 		t.Fatalf("expected cursor 1, got %d", m.branchCursor)
 	}
+	if m.branchFilterLocal != "" || m.branchFilterRemote != "" {
+		t.Fatalf("expected filters cleared")
+	}
 }
 
 func TestBranchPickerEnterDirtyShowsStashConfirm(t *testing.T) {
@@ -58,5 +61,39 @@ func TestConfirmStashCancelReturnsPicker(t *testing.T) {
 	m = m2.(Model)
 	if m.mode != ModeBranchPicker {
 		t.Fatalf("expected ModeBranchPicker, got %v", m.mode)
+	}
+}
+
+func TestBranchPickerTabToggle(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.mode = ModeBranchPicker
+	m.branchTab = BranchTabLocal
+	m.branchCursor = 2
+
+	m2, _ := m.handleBranchPicker(tea.KeyMsg{Type: tea.KeyTab})
+	m = m2.(Model)
+	if m.branchTab != BranchTabRemote {
+		t.Fatalf("expected remote tab, got %v", m.branchTab)
+	}
+	if m.branchCursor != 0 {
+		t.Fatalf("expected cursor reset, got %d", m.branchCursor)
+	}
+}
+
+func TestBranchPickerDirectTabKeys(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.mode = ModeBranchPicker
+	m.branchTab = BranchTabRemote
+
+	m2, _ := m.handleBranchPicker(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}})
+	m = m2.(Model)
+	if m.branchTab != BranchTabLocal {
+		t.Fatalf("expected local tab, got %v", m.branchTab)
+	}
+
+	m2, _ = m.handleBranchPicker(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	m = m2.(Model)
+	if m.branchTab != BranchTabRemote {
+		t.Fatalf("expected remote tab, got %v", m.branchTab)
 	}
 }

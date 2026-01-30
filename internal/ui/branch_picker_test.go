@@ -73,3 +73,52 @@ func TestBranchWindow(t *testing.T) {
 		}
 	}
 }
+
+func TestItemsForTab(t *testing.T) {
+	items := []BranchItem{
+		{Name: "main"},
+		{Name: "dev"},
+		{Name: "origin/feat", IsRemote: true},
+	}
+
+	locals := itemsForTab(items, BranchTabLocal)
+	if len(locals) != 2 {
+		t.Fatalf("expected 2 locals, got %d", len(locals))
+	}
+	remotes := itemsForTab(items, BranchTabRemote)
+	if len(remotes) != 1 || remotes[0].Name != "origin/feat" {
+		t.Fatalf("unexpected remotes: %#v", remotes)
+	}
+}
+
+func TestBranchWindowInfoMarkers(t *testing.T) {
+	start, end, top, bottom := branchWindowInfo(5, 0, 10)
+	if start != 0 || end != 5 {
+		t.Fatalf("expected full range, got %d..%d", start, end)
+	}
+	if top || bottom {
+		t.Fatalf("expected no markers when full list fits")
+	}
+
+	start, end, top, bottom = branchWindowInfo(100, 0, 10)
+	if start != 0 || end == 0 {
+		t.Fatalf("expected window from start, got %d..%d", start, end)
+	}
+	if top {
+		t.Fatalf("expected no top marker at start")
+	}
+	if !bottom {
+		t.Fatalf("expected bottom marker when list truncated")
+	}
+
+	start, end, top, bottom = branchWindowInfo(100, 99, 10)
+	if start == 0 || end != 100 {
+		t.Fatalf("expected window at end, got %d..%d", start, end)
+	}
+	if !top {
+		t.Fatalf("expected top marker at end")
+	}
+	if bottom {
+		t.Fatalf("expected no bottom marker at end")
+	}
+}

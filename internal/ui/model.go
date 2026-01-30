@@ -11,23 +11,25 @@ import (
 )
 
 type Model struct {
-	repos         []git.Repo
-	config        config.Config
-	cursor        int
-	width         int
-	height        int
-	mode          ViewMode
-	addPathInput  string
-	commitMsg     string
-	filterDirty   bool
-	branchItems   []BranchItem
-	branchFilter  string
-	branchCursor  int
-	pendingBranch BranchItem
-	loading       bool
-	statusMsg     string
-	err           error
-	watcher       watch.Runner
+	repos              []git.Repo
+	config             config.Config
+	cursor             int
+	width              int
+	height             int
+	mode               ViewMode
+	addPathInput       string
+	commitMsg          string
+	filterDirty        bool
+	branchItems        []BranchItem
+	branchFilterLocal  string
+	branchFilterRemote string
+	branchCursor       int
+	branchTab          BranchTab
+	pendingBranch      BranchItem
+	loading            bool
+	statusMsg          string
+	err                error
+	watcher            watch.Runner
 }
 
 // Messages
@@ -62,9 +64,10 @@ const (
 
 func NewModel(cfg config.Config) Model {
 	return Model{
-		config: cfg,
-		cursor: 0,
-		mode:   ModeNormal,
+		config:    cfg,
+		cursor:    0,
+		mode:      ModeNormal,
+		branchTab: BranchTabLocal,
 	}
 }
 

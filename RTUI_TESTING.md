@@ -96,6 +96,8 @@ Tests should create and clean fixtures automatically.
 - Branch picker: open with `b`, filter list, switch branch, and verify status update.
 - Stash confirm: dirty repo -> `b` -> select branch -> `[s]` stash and switch.
 - Long list: ensure branch picker scrolls and keeps selection visible.
+- Markers: show ↑/↓ only when items are hidden.
+- Tabs: use `Tab` or `l/r` to switch Local/Remote views; filter applies per view.
 - Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
 
 ## 6. Responsive Checks (right panel)

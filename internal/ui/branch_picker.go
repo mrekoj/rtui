@@ -11,6 +11,13 @@ type BranchItem struct {
 	IsRemote bool
 }
 
+type BranchTab int
+
+const (
+	BranchTabLocal BranchTab = iota
+	BranchTabRemote
+)
+
 func filterBranches(items []BranchItem, filter string) []BranchItem {
 	if filter == "" {
 		return items
@@ -59,8 +66,58 @@ func branchWindow(total, cursor, max int) (start, end int) {
 	return start, end
 }
 
+func branchWindowInfo(total, cursor, max int) (start, end int, showTop, showBottom bool) {
+	if total <= max {
+		return 0, total, false, false
+	}
+	windowMax := max - 2
+	if windowMax < 1 {
+		windowMax = 1
+	}
+	start, end = branchWindow(total, cursor, windowMax)
+	showTop = start > 0
+	showBottom = end < total
+	return start, end, showTop, showBottom
+}
+
+func itemsForTab(items []BranchItem, tab BranchTab) []BranchItem {
+	var out []BranchItem
+	for _, item := range items {
+		if tab == BranchTabRemote && item.IsRemote {
+			out = append(out, item)
+		}
+		if tab == BranchTabLocal && !item.IsRemote {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func toggleTab(tab BranchTab) BranchTab {
+	if tab == BranchTabLocal {
+		return BranchTabRemote
+	}
+	return BranchTabLocal
+}
+
 func (m Model) filteredBranches() []BranchItem {
-	return filterBranches(m.branchItems, m.branchFilter)
+	items := itemsForTab(m.branchItems, m.branchTab)
+	return filterBranches(items, m.branchFilter())
+}
+
+func (m Model) branchFilter() string {
+	if m.branchTab == BranchTabRemote {
+		return m.branchFilterRemote
+	}
+	return m.branchFilterLocal
+}
+
+func (m *Model) setBranchFilter(value string) {
+	if m.branchTab == BranchTabRemote {
+		m.branchFilterRemote = value
+		return
+	}
+	m.branchFilterLocal = value
 }
 
 func (m Model) selectedBranch() (BranchItem, bool) {
@@ -73,6 +130,18 @@ func (m Model) selectedBranch() (BranchItem, bool) {
 
 func (m Model) handleBranchPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "tab", "ctrl+i":
+		m.branchTab = toggleTab(m.branchTab)
+		m.branchCursor = 0
+		return m, nil
+	case "l":
+		m.branchTab = BranchTabLocal
+		m.branchCursor = 0
+		return m, nil
+	case "r":
+		m.branchTab = BranchTabRemote
+		m.branchCursor = 0
+		return m, nil
 	case "esc":
 		m.mode = ModeNormal
 		return m, nil
@@ -100,8 +169,10 @@ func (m Model) handleBranchPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.statusMsg = "Switching to " + item.Name + "..."
 		return m, m.switchBranchCmd(repo.Path, item, false)
 	case "backspace":
-		if len(m.branchFilter) > 0 {
-			m.branchFilter = m.branchFilter[:len(m.branchFilter)-1]
+		filter := m.branchFilter()
+		if len(filter) > 0 {
+			filter = filter[:len(filter)-1]
+			m.setBranchFilter(filter)
 			m.branchCursor = 0
 		}
 	case "j", "down":
@@ -115,7 +186,7 @@ func (m Model) handleBranchPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	default:
 		if msg.Type == tea.KeyRunes && len(msg.Runes) == 1 {
-			m.branchFilter += string(msg.Runes)
+			m.setBranchFilter(m.branchFilter() + string(msg.Runes))
 			m.branchCursor = 0
 		}
 	}

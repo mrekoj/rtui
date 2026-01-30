@@ -1,5 +1,5 @@
 Goal (incl. success criteria):
-- Implement branch switcher (picker modal) with tests-first, reports, docs.
+- Add Local/Remote branch picker tabs with Tab toggle and l/r shortcuts.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
@@ -65,13 +65,22 @@ State:
   - Phase 10 branch picker scrolling implemented.
   - Phase 10 report written.
   - Ran scripts/phase4_tests.sh after Phase 10.
+  - Committed and pushed branch picker feature.
+  - Phase 11 tabbed picker tests added; per-tab filter state implemented.
+  - Phase 11 report written.
+  - Phase 12 tabbed picker integrated; UI updated.
+  - Phase 12 report written.
+  - Ran scripts/phase4_tests.sh after Phases 11-12.
+  - Phase 13 marker visibility fix for branch picker.
+  - Phase 13 report written.
+  - Ran scripts/phase4_tests.sh after Phase 13.
   Now:
-  - Await review; ready to commit/push branch picker updates.
+  - Await review; ready to commit/push marker fix.
   Next:
   - Commit and push if requested.
 
 Open questions (UNCONFIRMED if needed):
-- None (picker UX + stash + remote tracking confirmed).
+- None.
 
 Working set (files/ids/commands):
 - internal/ui/view.go

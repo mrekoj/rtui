@@ -51,7 +51,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case branchesLoadedMsg:
 		m.branchItems = msg.items
-		m.branchFilter = ""
+		m.branchFilterLocal = ""
+		m.branchFilterRemote = ""
 		m.branchCursor = indexOfBranch(msg.items, msg.current)
 		return m, nil
 	case statusMsg:

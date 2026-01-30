@@ -349,25 +349,27 @@ Rules: path must already exist; duplicates are ignored.
 
 ### Branch Picker Modal
 
-Press `b` to switch branches for the selected repo.
+Press `b` to switch branches for the selected repo. Default view is Local.
 
 Behavior:
-- List local branches first, then remotes (grouped by remote prefix).
+- Tabs for Local and Remote branches.
+- Local tab shows only local branches; Remote tab shows only remotes.
 - Current branch is highlighted.
 - Type to filter (case-insensitive).
 - Long lists scroll; selection stays visible.
+- Scroll markers appear only when items are hidden above/below.
 - `Enter` switches to the selected branch.
 - If dirty: prompt to stash and then switch.
 - Selecting a remote creates a local tracking branch automatically.
 
 ```
 ┌─────────────────────────────────────┐
-│ Switch branch                       │
+│ Switch branch  [Local] [Remote]     │
 │ Filter: feat                        │
 │                                     │
 │ → feature/auth                      │
 │   feature/api                       │
-│   origin/feature/cli                │
+│                                     │
 │                                     │
 │ [Enter]=switch  [Esc]=cancel        │
 └─────────────────────────────────────┘
@@ -555,6 +557,7 @@ git stash push -u
 | `Esc` | Cancel | Commit Input |
 | `Enter` | Switch to selected branch | Branch Picker |
 | `Esc` | Close branch picker | Branch Picker |
+| `Tab` / `l` / `r` | Toggle Local/Remote view | Branch Picker |
 | `s` | Stash and switch | Confirm Stash |
 | `c` | Cancel | Confirm Stash |
 | `y` | Yes (pull) | Confirm Pull |
