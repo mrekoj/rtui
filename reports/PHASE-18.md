@@ -11,7 +11,7 @@ Scope: Footer hotkey emphasis by color with full labels (no brackets/underline).
 ## Files changed
 - internal/ui/styles.go
 - internal/ui/view.go
-- RTUI_PRODUCT_DOC.md
+- docs/RTUI_PRODUCT_DOC.md
 - reports/PHASE-18.md
 
 ## Tests

@@ -692,11 +692,15 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 
 ## 13. Testing
 
-See `RTUI_TESTING.md` for the automated test plan, guard checks, and manual/responsive checklists.
+See `docs/RTUI_TESTING.md` for the automated test plan, guard checks, and manual/responsive checklists.
 
 ---
 
 ## 14. Resources & Reference Links
+
+### Local Docs
+
+- `docs/BREW_RELEASE.md` - Homebrew release steps (macOS)
 
 ### Core Dependencies
 

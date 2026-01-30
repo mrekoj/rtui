@@ -58,7 +58,7 @@ Deliverables:
 - Stable v1 release behavior.
 
 Tests/scripts required:
-- Full suite per `RTUI_TESTING.md` + smoke script.
+- Full suite per `docs/RTUI_TESTING.md` + smoke script.
 - Script: `scripts/phase4_tests.sh`.
 
 Report required:

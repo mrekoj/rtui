@@ -35,7 +35,7 @@ Maintain a single Continuity Ledger for this workspace in `CONTINUITY.md`. The l
 - Working set (files/ids/commands):
 
 ## Protocol
-- Read `RTUI_PRODUCT_DOC.md` first; treat it as source of truth
+- Read `docs/RTUI_PRODUCT_DOC.md` first; treat it as source of truth
 - Preserve the 14-section numbering and ToC anchors; update ToC when headings change
 - Keep tone technical, direct, and consistent with existing sections
 - Use ASCII only unless the file already uses non-ASCII

@@ -11,8 +11,8 @@ Scope: Footer action bar adaptive layout to prevent overflow.
 ## Files changed
 - internal/ui/view.go
 - internal/ui/layout_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-16.md
 
 ## Tests

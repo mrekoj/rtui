@@ -15,7 +15,7 @@ Scope: Phase 2 integration of watcher into UI lifecycle.
 - internal/ui/watch.go
 - internal/ui/watch_integration_test.go
 - internal/watch/manager.go
-- RTUI_PRODUCT_DOC.md
+- docs/RTUI_PRODUCT_DOC.md
 - reports/PHASE-7.md
 
 ## Tests

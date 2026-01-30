@@ -11,8 +11,8 @@ Scope: Block push when repo is dirty; add tests and doc updates.
 ## Files changed
 - internal/ui/update.go
 - internal/ui/update_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-15.md
 
 ## Tests

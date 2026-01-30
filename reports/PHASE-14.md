@@ -13,8 +13,8 @@ Scope: Sync actions aligned to lazygit (p = pull, P = push) with dirty/behind gu
 - internal/ui/view.go
 - internal/ui/model.go
 - internal/ui/update_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-14.md
 
 ## Tests

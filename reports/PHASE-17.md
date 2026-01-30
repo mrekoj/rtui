@@ -12,8 +12,8 @@ Scope: Footer hotkey underline + compact bracket labels with 2-line wrap.
 - internal/ui/styles.go
 - internal/ui/view.go
 - internal/ui/layout_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-17.md
 
 ## Tests

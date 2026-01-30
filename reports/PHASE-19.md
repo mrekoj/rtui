@@ -11,7 +11,7 @@ Scope: Footer labels updated to full words with colored hotkeys and wider spacin
 
 ## Files changed
 - internal/ui/view.go
-- RTUI_PRODUCT_DOC.md
+- docs/RTUI_PRODUCT_DOC.md
 - reports/PHASE-19.md
 
 ## Tests

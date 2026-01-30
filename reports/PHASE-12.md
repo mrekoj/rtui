@@ -14,8 +14,8 @@ Scope: Branch picker tabs integration (Local/Remote views).
 - internal/ui/view.go
 - internal/ui/update.go
 - internal/ui/model.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-12.md
 
 ## Tests

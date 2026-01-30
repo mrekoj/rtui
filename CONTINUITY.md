@@ -1,146 +1,33 @@
 Goal (incl. success criteria):
-- Add UX action for Sync behind/ahead counts with lazygit-style keys.
+- Reorganize docs into docs/ and update all references; commit+push.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
-- User request: docs should not include code; code lives only in repo.
-- New requirement: tests first; after each phase run tests, write report, update doc.
+- Docs are business logic only; no code snippets in RTUI_PRODUCT_DOC.md.
+- Update "Last updated" on material doc edits with absolute date.
 
 Key decisions:
-- Treat bracketed paste as KeyRunes with Paste=true; strip newlines.
-- Render footer after padding content to terminal height.
-- Sync keys: p = pull, P = push (match lazygit).
-- Pull when dirty: block and show warning in status area.
-- Push when dirty: block and show warning in status area.
+- Docs relocated to docs/: RTUI_PRODUCT_DOC, RTUI_TESTING, RTUI_PHASES, BREW_RELEASE.
+- References updated to docs/ paths (AGENTS, README, reports, docs).
 
 State:
   Done:
-  - Added paste handling in add-path and commit input.
-  - Added paste tests.
-  - Ran scripts/phase4_tests.sh.
-  - Pinned footer/status line to bottom of terminal.
-  - Ran scripts/phase4_tests.sh after footer change.
-  - Changed selected row to arrow "→" + text-only highlight on name/branch.
-  - Ran scripts/phase4_tests.sh after selection change.
-  - Removed header/title line.
-  - Ran scripts/phase4_tests.sh after header removal.
-  - Committed and pushed changes to origin/main.
-  - Added repo table layout with | separators and header row.
-  - Ran scripts/phase4_tests.sh after table change.
-  - Set Status=8, Sync=6 widths and added "-" placeholder for empty Sync.
-  - Updated layout tests.
-  - Ran scripts/phase4_tests.sh after width change.
-  - Switched to commit-only flow with auto-stage all; push is separate.
-  - Mapped keys: c commit, o open editor, p push; removed confirm-stage mode.
-  - Added commit/push completion messages and auto-refresh after pull/push/commit.
-  - Updated RTUI_PRODUCT_DOC.md for new flow and keybindings.
-  - Ran scripts/phase4_tests.sh after UX change.
-  - Moved status text to REPOSITORIES header line (right-aligned).
-  - Simplified footer to actions only.
-  - Updated RTUI_PRODUCT_DOC.md UI spec and layout snippets for header status.
-  - Ran scripts/phase4_tests.sh (escalated to access Go build cache).
-  - Removed all Go code blocks from RTUI_PRODUCT_DOC.md and replaced with business-logic text/tables.
-  - Simplified Implementation Guide to module responsibilities and runtime flows.
-  - Filled UI spec rules (responsive, truncation, resize) without code.
-  - Committed and pushed docs cleanup + header status update.
-  - Found references: gh-dash uses polling interval defaults; gh run watch polls at 3s; watchman provides file-watching; gitwatch uses inotify/fswatch.
-  - Chosen: fsnotify watcher-only, debounce 500ms, watch repo root + .git/index + .git/HEAD.
-  - Phase 0 tests added for watcher debounce and ignore rules.
-  - Phase 0 report written.
-  - RTUI_PRODUCT_DOC.md updated with watcher-only flow and fsnotify dependency.
-  - RTUI_TESTING.md updated with watcher tests + manual check.
-  - Phase 1 watcher module implemented (fsnotify backend).
-  - Added repo-path test and fsnotify dependency.
-  - Phase 1 report written.
-  - Ran scripts/phase4_tests.sh after Phase 1.
-  - Phase 2 integration: watcher lifecycle wired into UI.
-  - Added watcher integration tests.
-  - Phase 2 report written.
-  - Ran scripts/phase4_tests.sh after Phase 2.
-  - Committed and pushed watcher module + integration changes.
-  - Phase 8 tests added for branch picker helpers.
-  - Phase 8 report written.
-  - Ran scripts/phase4_tests.sh after Phase 8.
-  - Phase 9 branch switcher integrated (UI + git).
-  - Added branch picker integration tests.
-  - Phase 9 report written.
-  - Ran scripts/phase4_tests.sh after Phase 9.
-  - Phase 10 branch picker scrolling implemented.
-  - Phase 10 report written.
-  - Ran scripts/phase4_tests.sh after Phase 10.
-  - Committed and pushed branch picker feature.
-  - Phase 11 tabbed picker tests added; per-tab filter state implemented.
-  - Phase 11 report written.
-  - Phase 12 tabbed picker integrated; UI updated.
-  - Phase 12 report written.
-  - Ran scripts/phase4_tests.sh after Phases 11-12.
-  - Phase 13 marker visibility fix for branch picker.
-  - Phase 13 report written.
-  - Ran scripts/phase4_tests.sh after Phase 13.
-  - Committed and pushed tabbed picker + marker updates.
-  - Remapped sync keys: p pull, P push; removed pull confirm dialog.
-  - Added guards: pull blocked when dirty/conflict; push blocked when behind/conflict.
-  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for new sync UX.
-  - Added tests for pull/push guards and happy paths.
-  - Phase 14 report written.
-  - Ran scripts/phase4_tests.sh after sync changes.
-  - Added dirty-push guard (block with status message).
-  - Added dirty-push test.
-  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for dirty-push guard.
-  - Phase 15 report written.
-  - Ran scripts/phase4_tests.sh after dirty-push guard.
-  - Footer actions now collapse to fit width; no overflow.
-  - Added footer width test.
-  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for responsive footer.
-  - Phase 16 report written.
-  - Ran scripts/phase4_tests.sh after footer change.
-  - Footer switched to compact bracketed hotkeys with underlined keys.
-  - Footer wraps to two lines and avoids overflow (drops extras if needed, keeps help).
-  - Added footer wrap test; updated docs and Phase 17 report.
-  - Ran scripts/phase4_tests.sh after footer wrap fix.
-  - Footer switched to full labels with colored hotkey letter; brackets/underline removed.
-  - Updated RTUI_PRODUCT_DOC.md and Phase 18 report.
-  - Ran scripts/phase4_tests.sh after footer color change.
-  - Footer labels updated to full words (add path, branch, commit, push, open, pull, refresh, ?).
-  - Footer uses wider fixed spacing; wraps to two lines if needed.
-  - RTUI_PRODUCT_DOC.md updated and Phase 19 report written.
-  - Ran scripts/phase4_tests.sh after footer label update.
-  - Add Path modal centered at ~70% width (clamped).
-  - Added centered modal test and updated docs/testing notes.
-  - Phase 20 report written.
-  - Ran scripts/phase4_tests.sh after add-path modal change.
-  - Added panel focus (1/2), CHANGES/GRAPH toggle (Tab), and bottom panel scrolling.
-  - Added git log graph fetch and graph list rendering.
-  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for new panel behavior.
-  - Added tests for panel focus/toggle and git graph.
-  - Phase 21 report written.
-  - Ran scripts/phase4_tests.sh after panel/graph changes.
-  - Added `s` key to open config file in VS Code.
-  - Added config path helper and tests.
-  - Updated RTUI_PRODUCT_DOC.md and RTUI_TESTING.md for settings key.
-  - Phase 22 report written.
-  - Ran scripts/phase4_tests.sh after settings key.
-  - Config Save now writes paths as multi-line array.
-  - Added tests for multiline config output.
-  - Phase 23 report written.
-  - Ran scripts/phase4_tests.sh after config formatting change.
+  - Docs moved into docs/ and references updated.
+  - Verified references via rg; checked git status.
   Now:
-  - Formatted current config file to multiline paths.
+  - Await commit+push for docs reorg; untracked include README.md, docs/*, dist/*.
   Next:
-  - Implement tests-first if approved.
+  - Await user follow-up requests.
 
 Open questions (UNCONFIRMED if needed):
-- Add explicit status for "no upstream" / "nothing to push"? (UNCONFIRMED)
+- None.
 
 Working set (files/ids/commands):
-- internal/ui/view.go
-- internal/ui/update.go
-- internal/ui/panel.go
-- internal/ui/graph_cmds.go
-- internal/git/git.go
-- internal/config/config.go
-- internal/config/config_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
-- reports/PHASE-23.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
+- docs/RTUI_PHASES.md
+- docs/BREW_RELEASE.md
+- README.md
+- AGENTS.md
+- reports/PHASE-*.md
 - CONTINUITY.md

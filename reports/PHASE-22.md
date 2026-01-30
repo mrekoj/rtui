@@ -14,8 +14,8 @@ Scope: Open settings file via keybinding.
 - internal/ui/update.go
 - internal/ui/update_test.go
 - internal/ui/view.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-22.md
 
 ## Tests

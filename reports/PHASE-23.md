@@ -10,7 +10,7 @@ Scope: Config paths saved as multi-line list.
 ## Files changed
 - internal/config/config.go
 - internal/config/config_test.go
-- RTUI_PRODUCT_DOC.md
+- docs/RTUI_PRODUCT_DOC.md
 - reports/PHASE-23.md
 
 ## Tests

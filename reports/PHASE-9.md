@@ -18,8 +18,8 @@ Scope: Branch switcher integration (UI + git) with tests-first.
 - internal/ui/branch_picker.go
 - internal/ui/branch_cmds.go
 - internal/ui/branch_picker_integration_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-9.md
 
 ## Tests

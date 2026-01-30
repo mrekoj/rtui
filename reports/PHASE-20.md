@@ -11,8 +11,8 @@ Scope: Center Add Path modal at 70% width.
 ## Files changed
 - internal/ui/view.go
 - internal/ui/layout_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-20.md
 
 ## Tests

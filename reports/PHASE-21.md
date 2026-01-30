@@ -19,8 +19,8 @@ Scope: Bottom panel focus, CHANGES/GRAPH toggle, and scrollable lists.
 - internal/ui/panel_test.go
 - internal/git/git.go
 - internal/git/git_integration_test.go
-- RTUI_PRODUCT_DOC.md
-- RTUI_TESTING.md
+- docs/RTUI_PRODUCT_DOC.md
+- docs/RTUI_TESTING.md
 - reports/PHASE-21.md
 
 ## Tests

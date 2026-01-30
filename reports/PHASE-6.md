@@ -8,14 +8,14 @@ Scope: Phase 1 watcher module (fsnotify) implementation.
 - Added repo mapping helper and watch scope helpers.
 - Added repo-path tests for watcher module.
 - Added fsnotify dependency to go.mod/go.sum.
-- Updated RTUI_PRODUCT_DOC.md with watcher-only behavior details.
+- Updated docs/RTUI_PRODUCT_DOC.md with watcher-only behavior details.
 
 ## Files changed
 - internal/watch/manager.go
 - internal/watch/watch_test.go
 - go.mod
 - go.sum
-- RTUI_PRODUCT_DOC.md
+- docs/RTUI_PRODUCT_DOC.md
 - reports/PHASE-6.md
 
 ## Tests

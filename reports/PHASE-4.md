@@ -6,8 +6,8 @@ Date: January 29, 2026
 - Added integration tests for git CLI status using real temp repos.
 - Hardened CWD fallback to emit a status message on load.
 - Added smoke script and full phase 4 test runner.
-- Updated RTUI_TESTING.md quick-start with phase scripts.
-- Synced RTUI_PRODUCT_DOC.md to match runtime CWD banner behavior.
+- Updated docs/RTUI_TESTING.md quick-start with phase scripts.
+- Synced docs/RTUI_PRODUCT_DOC.md to match runtime CWD banner behavior.
 
 ## Tests Executed
 - `scripts/phase4_tests.sh`
