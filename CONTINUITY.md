@@ -1,5 +1,5 @@
 Goal (incl. success criteria):
-- Add dist/ and CONTINUITY.md to .gitignore; commit+push if requested.
+- Review all docs for mismatches/gaps; suggest improvements and future doc split for reuse across TUI apps.
 
 Constraints/Assumptions:
 - Follow AGENTS.md: start with hi + confirm doc scope; telegraph style; minimal tokens; ASCII only.
@@ -16,10 +16,14 @@ State:
   - Verified references via rg; checked git status.
   - Committed and pushed docs reorg (commit c732248).
   - Added dist/ and CONTINUITY.md to .gitignore.
+  - Committed and pushed .gitignore update (commit c40a2bd).
+  - Delivered stack-by-component flow and library roles.
+  - Reviewed docs for mismatches/gaps; prepared fixes + shared doc split.
+  - Updated RTUI_PRODUCT_DOC, RTUI_TESTING, RTUI_PHASES; added docs/shared/*.
   Now:
-  - Await commit+push request.
+  - Await review/commit request.
   Next:
-  - Commit+push if requested.
+  - Update docs if asked.
 
 Open questions (UNCONFIRMED if needed):
 - None.

@@ -31,7 +31,7 @@ Focus: deterministic logic, no external git.
 - `config.NormalizePath`: trims, expands `~`, cleans path.
 - `config.AppendPath`: requires existing path, ignores duplicates, writes config.
 - `config.Load/Save`: round-trip, preserves values.
-- UI model state transitions: `ModeAddPath`, `ModeConfirmStage`, `ModeConfirmPull`, `ModeCommitInput`.
+- UI model state transitions: `ModeAddPath`, `ModeCommitInput`, `ModeConfirmStash`.
 - Watcher logic: debounce coalescing, ignore rules, per-repo event handling.
 - Branch picker helpers: filtering and selection index.
 

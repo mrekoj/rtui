@@ -37,7 +37,7 @@ Report required:
 ## Phase 3: Primary Flows
 
 Scope:
-- Add-path modal, commit flow (pull prompt + stage prompt), fetch/refresh, status/error handling.
+- Add-path modal, commit flow (auto-stage all), pull/push guards, fetch/refresh, status/error handling.
 
 Deliverables:
 - End-to-end user flows in TUI.
@@ -64,4 +64,4 @@ Tests/scripts required:
 Report required:
 - `reports/PHASE-4.md`.
 
-*Last updated: January 29, 2026*
+*Last updated: January 30, 2026*

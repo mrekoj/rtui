@@ -366,6 +366,9 @@ Behavior:
 - Tabs for Local and Remote branches.
 - Local tab shows only local branches; Remote tab shows only remotes.
 - Current branch is highlighted.
+- Type to filter (case-insensitive). Filter is stored per tab.
+- Scroll markers appear only when items are hidden above/below.
+- Long lists scroll; selection stays visible.
 
 ### Bottom Panel Toggle
 
@@ -374,9 +377,7 @@ Behavior:
 - `1` focuses repo list; `2` focuses bottom panel.
 - `j/k` scrolls the focused panel; `PgUp/PgDn` fast scrolls.
 - GRAPH view shows `git log --graph --oneline` for the selected repo.
-- Type to filter (case-insensitive).
-- Long lists scroll; selection stays visible.
-- Scroll markers appear only when items are hidden above/below.
+- Long lists scroll; scroll position is preserved per view.
 - `Enter` switches to the selected branch.
 - If dirty: prompt to stash and then switch.
 - Selecting a remote creates a local tracking branch automatically.
@@ -436,11 +437,10 @@ Rules:
 
 ### Vertical Responsiveness
 
-| Terminal Height | Repo List | Details Panel |
-|-----------------|-----------|---------------|
-| < 15 rows | Full height, no details | Hidden |
-| 15-30 rows | 60% height | 40% height |
-| > 30 rows | Auto (content-based) | Auto (content-based) |
+Rules:
+- Bottom panel renders only when there is room for header plus at least one content line.
+- If remaining space after repo list is < 3 lines, the bottom panel is hidden.
+- When shown, the bottom panel uses the remaining lines and content scrolls.
 
 
 ### Truncation Rules
@@ -597,44 +597,20 @@ git stash push -u
 
 Tip: Press `s` to open the config file in VS Code.
 
-```toml
-# Folders to scan for git repos
-# Supports ~ expansion
-# TOML array syntax: https://toml.io/en/v1.0.0#array
-paths = [
-    "~/SourceCode/Miwiz",
-    "~/SourceCode/Personal",
-]
+Config keys:
 
-# Editor command (default: $EDITOR or "code")
-# Common editors: "code", "zed", "nvim", "hx", "subl"
-editor = "zed"
+| Key | Type | Default | Notes |
+|-----|------|---------|-------|
+| `paths` | array[string] | empty | Folders to scan; supports `~` expansion; saved as multi-line TOML array |
+| `editor` | string | `$EDITOR` or `code` | Editor command used by `o` and `s` |
+| `refresh_interval` | int | 30 | Reserved for polling mode; set `0` in watcher-only |
+| `show_clean` | bool | true | Show clean repos in list |
+| `scan_depth` | int | 1 | Max depth under each path |
 
-# Auto-refresh interval in seconds (reserved for polling mode; set 0 in watcher-only)
-# TOML integer: https://toml.io/en/v1.0.0#integer
-refresh_interval = 0
-
-# Show clean repos (true) or dirty only (false)
-# TOML boolean: https://toml.io/en/v1.0.0#boolean
-show_clean = true
-
-# Max depth to scan for repos (default: 1)
-# 1 = direct children only
-# 2 = children and grandchildren
-scan_depth = 1
-```
-
-Note: If the config file is missing or `paths` is empty, RTUI scans the current working directory (CWD) and shows a banner with the path.
-Note: The UI `[a]dd path` appends a normalized path to `paths` and writes the config file. Path must exist; duplicates are ignored.
-
-**Create config manually:**
-```bash
-mkdir -p ~/.config/rtui
-cat > ~/.config/rtui/config.toml << 'EOF'
-paths = ["~/your/repos/folder"]
-editor = "code"
-EOF
-```
+Notes:
+- If the config file is missing or `paths` is empty, RTUI scans the current working directory (CWD) and shows a banner with the path.
+- The UI `a` (add path) appends a normalized path to `paths` and writes the config file. Path must exist; duplicates are ignored.
+- For a sample TOML file and shared config conventions, see `docs/shared/TUI_CONFIG_STANDARD.md`.
 
 ---
 
@@ -701,6 +677,7 @@ See `docs/RTUI_TESTING.md` for the automated test plan, guard checks, and manual
 ### Local Docs
 
 - `docs/BREW_RELEASE.md` - Homebrew release steps (macOS)
+- `docs/shared/` - Reusable TUI docs (runtime flow, keybindings, config, testing, release)
 
 ### Core Dependencies
 
