@@ -20,15 +20,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.repos = msg.repos
 		m.loading = false
 		if msg.usedCWD && msg.cwd != "" {
-			m.statusMsg = "Scanning CWD: " + msg.cwd
+			m = m.setStatusInfo("Scanning CWD: " + msg.cwd)
 		} else if wasLoading {
-			m.statusMsg = "Refreshed"
+			m = m.setStatusInfo("Refreshed")
 		}
+		cmds := []tea.Cmd{m.maybeLoadGraph()}
 		if m.watcher != nil {
-			cmds := []tea.Cmd{m.watchAddReposCmd(msg.repos), m.maybeLoadGraph()}
-			return m, tea.Batch(cmds...)
+			cmds = append(cmds, m.watchAddReposCmd(msg.repos))
 		}
-		return m, m.maybeLoadGraph()
+		return m, tea.Batch(cmds...)
 	case watchStartedMsg:
 		m.watcher = msg.manager
 		cmds := []tea.Cmd{m.watchEventsCmd(), m.watchErrorsCmd()}
@@ -42,12 +42,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.watchEventsCmd(),
 		)
 	case watchErrMsg:
-		m.statusMsg = "Watcher error: " + msg.Error()
+		m = m.setStatusError("Watcher error: " + msg.Error())
 		return m, m.watchErrorsCmd()
 	case repoUpdatedMsg:
 		m.applyRepoUpdate(msg.repo)
 		if strings.HasPrefix(m.statusMsg, "Switching") || strings.HasPrefix(m.statusMsg, "Stashing") {
-			m.statusMsg = "Switched to " + msg.repo.Branch
+			m = m.setStatusInfo("Switched to " + msg.repo.Branch)
 		}
 		return m, m.maybeLoadGraph()
 	case branchesLoadedMsg:
@@ -58,7 +58,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case graphLoadedMsg:
 		if msg.err != nil {
-			m.statusMsg = "Graph error: " + msg.err.Error()
+			m = m.setStatusError("Graph error: " + msg.err.Error())
 			return m, nil
 		}
 		m.graphLines = msg.lines
@@ -67,23 +67,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case statusMsg:
-		m.statusMsg = string(msg)
+		m = m.setStatusInfo(string(msg))
 		return m, nil
 	case errMsg:
 		m.err = msg
-		m.statusMsg = "Error: " + msg.Error()
+		m = m.setStatusError("Error: " + msg.Error())
 		return m, nil
 	case pullDoneMsg:
-		m.statusMsg = "Pulled " + string(msg)
+		m = m.setStatusInfo("Pulled " + string(msg))
 		m.mode = ModeNormal
 		return m, m.loadRepos()
 	case commitDoneMsg:
-		m.statusMsg = "Committed " + string(msg)
+		m = m.setStatusInfo("Committed " + string(msg))
 		return m, m.loadRepos()
 	case pushDoneMsg:
-		m.statusMsg = "Pushed " + string(msg)
+		m = m.setStatusInfo("Pushed " + string(msg))
 		return m, m.loadRepos()
+	case statusTickMsg:
+		if m.statusKind == StatusInfo && m.statusMsg != "" && !m.statusUntil.IsZero() && msg.now.After(m.statusUntil) {
+			m = m.clearStatus()
+		}
+		return m, m.statusTickCmd()
 	case tea.KeyMsg:
+		if m.statusKind == StatusError && m.statusMsg != "" {
+			m = m.clearStatus()
+		}
 		return m.handleKey(msg)
 	}
 
@@ -147,11 +155,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case "tab":
+		if m.panelFocus != FocusBottom {
+			return m, nil
+		}
 		m.toggleBottomView()
 		return m, m.maybeLoadGraph()
 	case "r":
 		m.loading = true
-		m.statusMsg = "Refreshing..."
+		m = m.setStatusInfo("Refreshing...")
 		return m, m.loadRepos()
 	case "d":
 		m.filterDirty = !m.filterDirty
@@ -162,11 +173,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		if repo := m.currentRepo(); repo != nil {
 			if repo.HasConflict {
-				m.statusMsg = "Cannot commit: repo has conflicts"
+				m = m.setStatusError("Cannot commit: repo has conflicts")
 				return m, nil
 			}
 			if !repo.IsDirty() {
-				m.statusMsg = "Nothing to commit"
+				m = m.setStatusInfo("Nothing to commit")
 				return m, nil
 			}
 			m.mode = ModeCommitInput
@@ -175,11 +186,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "o":
 		if repo := m.currentRepo(); repo != nil {
 			_ = git.OpenInEditor(repo.Path, m.config.Editor)
-			m.statusMsg = "Opened " + repo.Name + " in " + m.config.Editor
+			m = m.setStatusInfo("Opened " + repo.Name + " in " + m.config.Editor)
 		}
 	case "s":
 		path := config.ConfigPath()
-		m.statusMsg = "Opening settings in VS Code..."
+		m = m.setStatusInfo("Opening settings in VS Code...")
 		return m, func() tea.Msg {
 			if err := git.OpenInEditor(path, "code"); err != nil {
 				return errMsg(err)
@@ -188,7 +199,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "f":
 		if repo := m.currentRepo(); repo != nil {
-			m.statusMsg = "Fetching..."
+			m = m.setStatusInfo("Fetching...")
 			return m, func() tea.Msg {
 				if err := git.FetchAll(repo.Path); err != nil {
 					return errMsg(err)
@@ -199,14 +210,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "p":
 		if repo := m.currentRepo(); repo != nil {
 			if repo.HasConflict {
-				m.statusMsg = "Cannot pull: repo has conflicts"
+				m = m.setStatusError("Cannot pull: repo has conflicts")
 				return m, nil
 			}
 			if repo.IsDirty() {
-				m.statusMsg = "Cannot pull: repo has uncommitted changes"
+				m = m.setStatusError("Cannot pull: repo has uncommitted changes")
 				return m, nil
 			}
-			m.statusMsg = "Pulling..."
+			m = m.setStatusInfo("Pulling...")
 			return m, func() tea.Msg {
 				if err := git.Pull(repo.Path); err != nil {
 					return errMsg(err)
@@ -217,18 +228,18 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "P":
 		if repo := m.currentRepo(); repo != nil {
 			if repo.HasConflict {
-				m.statusMsg = "Cannot push: repo has conflicts"
+				m = m.setStatusError("Cannot push: repo has conflicts")
 				return m, nil
 			}
 			if repo.IsDirty() {
-				m.statusMsg = "Cannot push: repo has uncommitted changes"
+				m = m.setStatusError("Cannot push: repo has uncommitted changes")
 				return m, nil
 			}
 			if repo.Behind > 0 {
-				m.statusMsg = "Cannot push: behind remote (pull first)"
+				m = m.setStatusError("Cannot push: behind remote (pull first)")
 				return m, nil
 			}
-			m.statusMsg = "Pushing..."
+			m = m.setStatusInfo("Pushing...")
 			return m, func() tea.Msg {
 				if err := git.Push(repo.Path); err != nil {
 					return errMsg(err)
@@ -239,7 +250,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "b":
 		if repo := m.currentRepo(); repo != nil {
 			m.mode = ModeBranchPicker
-			m.statusMsg = "Loading branches..."
+			m = m.setStatusInfo("Loading branches...")
 			return m, m.loadBranchesCmd(repo.Path)
 		}
 	case "?":
@@ -261,7 +272,7 @@ func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		for _, existing := range m.config.Paths {
 			if config.NormalizePath(existing) == normalized {
-				m.statusMsg = "Path already exists"
+				m = m.setStatusInfo("Path already exists")
 				m.mode = ModeNormal
 				m.addPathInput = ""
 				return m, nil
@@ -270,7 +281,7 @@ func (m Model) handleAddPath(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if err := config.AppendPath(&m.config, normalized); err != nil {
 			return m, func() tea.Msg { return errMsg(err) }
 		}
-		m.statusMsg = "Path added"
+		m = m.setStatusInfo("Path added")
 		m.mode = ModeNormal
 		m.addPathInput = ""
 		return m, m.loadRepos()
@@ -303,7 +314,7 @@ func (m Model) handleCommitInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = ModeNormal
 			return m, nil
 		}
-		m.statusMsg = "Committing..."
+		m = m.setStatusInfo("Committing...")
 		m.mode = ModeNormal
 		commitMsg := m.commitMsg
 		m.commitMsg = ""

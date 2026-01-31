@@ -203,10 +203,21 @@ func TestBottomViewToggle(t *testing.T) {
 		t.Fatalf("expected default bottom view changes, got %v", m.bottomView)
 	}
 
+	m.panelFocus = FocusBottom
 	m2, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyTab})
 	m = m2.(Model)
 	if m.bottomView != BottomGraph {
 		t.Fatalf("expected bottom view graph, got %v", m.bottomView)
+	}
+}
+
+func TestBottomViewToggleIgnoredWhenRepoFocus(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.panelFocus = FocusRepos
+	m2, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyTab})
+	m = m2.(Model)
+	if m.bottomView != BottomChanges {
+		t.Fatalf("expected bottom view unchanged, got %v", m.bottomView)
 	}
 }
 

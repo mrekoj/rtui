@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"rtui/internal/config"
+	"rtui/internal/git"
 )
 
 func TestCalculateLayoutCompact(t *testing.T) {
@@ -90,5 +93,28 @@ func TestAddPathModalCentered(t *testing.T) {
 		if lipgloss.Width(line) > m.width {
 			t.Fatalf("line width %d exceeds %d", lipgloss.Width(line), m.width)
 		}
+	}
+}
+
+func TestBottomPanelHeightStable(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.width = 60
+	m.height = 20
+	m.repos = []git.Repo{{Name: "repo", Path: "/tmp/repo"}}
+
+	maxLines := m.bottomPanelMaxLines()
+	if maxLines < 3 {
+		t.Fatal("expected bottom panel to be visible")
+	}
+
+	changes := m.renderChangesPanel(maxLines)
+	if got := strings.Count(changes, "\n"); got != maxLines {
+		t.Fatalf("expected changes panel lines %d, got %d", maxLines, got)
+	}
+
+	m.graphLines = []string{"* commit 1", "* commit 2"}
+	graph := m.renderGraphPanel(maxLines)
+	if got := strings.Count(graph, "\n"); got != maxLines {
+		t.Fatalf("expected graph panel lines %d, got %d", maxLines, got)
 	}
 }

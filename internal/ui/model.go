@@ -2,6 +2,7 @@ package ui
 
 import (
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -33,6 +34,8 @@ type Model struct {
 	graphLines         []string
 	loading            bool
 	statusMsg          string
+	statusKind         StatusKind
+	statusUntil        time.Time
 	err                error
 	watcher            watch.Runner
 }
@@ -94,6 +97,7 @@ func NewModel(cfg config.Config) Model {
 		branchTab:   BranchTabLocal,
 		changesScroll: 0,
 		graphScroll:   0,
+		statusKind:    StatusInfo,
 	}
 }
 
@@ -101,6 +105,7 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.loadRepos(),
 		startWatcherCmd(),
+		m.statusTickCmd(),
 	)
 }
 

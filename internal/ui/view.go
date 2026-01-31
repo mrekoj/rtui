@@ -298,10 +298,7 @@ func (m Model) renderChangesPanel(maxLines int) string {
 	}
 	start := clamp(m.changesScroll, 0, maxScroll(len(lines), contentMax))
 	end := min(start+contentMax, len(lines))
-	for _, line := range lines[start:end] {
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
+	m.writePanelLines(&b, lines[start:end], contentMax)
 	return b.String()
 }
 
@@ -353,16 +350,16 @@ func (m Model) renderGraphPanel(maxLines int) string {
 		return b.String()
 	}
 	lines := m.graphLines
+	if len(lines) == 0 {
+		lines = []string{footerStyle.Render("  No commits")}
+	}
 	start := clamp(m.graphScroll, 0, maxScroll(len(lines), contentMax))
 	end := min(start+contentMax, len(lines))
-	if len(lines) == 0 {
-		b.WriteString(footerStyle.Render("  No commits"))
-		return b.String()
-	}
+	window := make([]string, 0, end-start)
 	for _, line := range lines[start:end] {
-		b.WriteString(truncate(line, m.width))
-		b.WriteString("\n")
+		window = append(window, truncate(line, m.width))
 	}
+	m.writePanelLines(&b, window, contentMax)
 	return b.String()
 }
 
@@ -404,6 +401,15 @@ func (m Model) changesTotalLines() int {
 		}
 	}
 	return 3 + staged + modified + untracked
+}
+
+func (m Model) writePanelLines(b *strings.Builder, lines []string, contentMax int) {
+	for i := 0; i < contentMax; i++ {
+		if i < len(lines) {
+			b.WriteString(lines[i])
+		}
+		b.WriteString("\n")
+	}
 }
 
 func (m Model) bottomPanelMaxLines() int {
@@ -516,7 +522,7 @@ Actions
 Panels
   1       Focus repo list
   2       Focus bottom panel
-  Tab     Toggle Changes/Graph
+  Tab     Toggle Changes/Graph (bottom panel)
 
 Filters
   d       Toggle dirty-only

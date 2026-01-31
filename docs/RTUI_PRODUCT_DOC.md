@@ -373,11 +373,12 @@ Behavior:
 ### Bottom Panel Toggle
 
 - Bottom panel defaults to CHANGES view.
-- `Tab` toggles CHANGES <-> GRAPH.
+- `Tab` toggles CHANGES <-> GRAPH when bottom panel is focused (`2`).
 - `1` focuses repo list; `2` focuses bottom panel.
 - `j/k` scrolls the focused panel; `PgUp/PgDn` fast scrolls.
 - GRAPH view shows `git log --graph --oneline` for the selected repo.
 - Long lists scroll; scroll position is preserved per view.
+- Panel height is fixed to the available space; switching views does not shift layout.
 - `Enter` switches to the selected branch.
 - If dirty: prompt to stash and then switch.
 - Selecting a remote creates a local tracking branch automatically.
@@ -575,7 +576,7 @@ git stash push -u
 | `d` | Toggle dirty-only filter | Normal |
 | `1` | Focus repo list | Normal |
 | `2` | Focus bottom panel | Normal |
-| `Tab` | Toggle CHANGES/GRAPH | Normal |
+| `Tab` | Toggle CHANGES/GRAPH (bottom panel) | Normal |
 | `PgUp` / `PgDn` | Fast scroll focused panel | Normal |
 | `?` | Show help | Normal |
 | `q` | Quit | Normal |
@@ -662,7 +663,8 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 ### Error Display
 - Errors show in the header status area
 - Use red color for errors
-- Auto-clear after 5 seconds or on next action
+- Info/success messages auto-clear after ~5 seconds
+- Errors persist until the next user action
 
 ---
 
@@ -887,4 +889,4 @@ Total: ~950 lines of Go code
 
 ---
 
-*Last updated: January 30, 2026*
+*Last updated: January 31, 2026*

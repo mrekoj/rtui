@@ -48,7 +48,7 @@ Navigation
 - `j/k` or arrows: move
 - `1`: focus repo list
 - `2`: focus bottom panel
-- `Tab`: toggle CHANGES <-> GRAPH
+- `Tab`: toggle CHANGES <-> GRAPH (bottom panel)
 
 Actions
 - `a`: add path

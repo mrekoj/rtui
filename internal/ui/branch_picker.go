@@ -157,7 +157,7 @@ func (m Model) handleBranchPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if item.Name == repo.Branch {
 			m.mode = ModeNormal
-			m.statusMsg = "Already on " + item.Name
+			m = m.setStatusInfo("Already on " + item.Name)
 			return m, nil
 		}
 		if repo.IsDirty() {
@@ -166,7 +166,7 @@ func (m Model) handleBranchPicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.mode = ModeNormal
-		m.statusMsg = "Switching to " + item.Name + "..."
+		m = m.setStatusInfo("Switching to " + item.Name + "...")
 		return m, m.switchBranchCmd(repo.Path, item, false)
 	case "backspace":
 		filter := m.branchFilter()
@@ -204,7 +204,7 @@ func (m Model) handleConfirmStash(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		item := m.pendingBranch
 		m.pendingBranch = BranchItem{}
 		m.mode = ModeNormal
-		m.statusMsg = "Stashing and switching..."
+		m = m.setStatusInfo("Stashing and switching...")
 		return m, m.switchBranchCmd(repo.Path, item, true)
 	case "c", "esc":
 		m.pendingBranch = BranchItem{}
