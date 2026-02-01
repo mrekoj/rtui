@@ -324,7 +324,7 @@ Action bar must never overflow; it uses full labels with the hotkey letter color
 ### Layout Structure
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ REPOSITORIES [1]                                          Refreshed    │
+│ REPOSITORIES [1]                                           Refreshed    │
 │─────────────────────────────────────────────────────────────────────────│
 │   Name             | Branch         | Status   | Sync                   │
 │ → miwiz-api        | main           | 2M       | ↓3                     │
@@ -343,6 +343,9 @@ Action bar must never overflow; it uses full labels with the hotkey letter color
 │ (hotkey letter is colored; wraps to second line when needed)           │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+Note: The status text is right-aligned on the REPOSITORIES header line and is dropped if there is no room.
+Note: The repo list is windowed; the header stays pinned and the list scrolls when there are more repos than visible rows.
 
 ### Add Path Modal
 

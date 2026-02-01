@@ -117,8 +117,14 @@ func (m Model) renderRepoList() string {
 	b.WriteString(strings.Repeat("─", m.width))
 	b.WriteString("\n")
 
-	for i, repo := range repos {
-		line := m.renderRepoLine(repo, i == m.cursor, layout)
+	start, end := m.repoWindow(len(repos))
+	window := repos
+	if len(repos) > 0 {
+		window = repos[start:end]
+	}
+	for i, repo := range window {
+		index := start + i
+		line := m.renderRepoLine(repo, index == m.cursor, layout)
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
@@ -131,28 +137,48 @@ func (m Model) renderRepoSectionHeader() string {
 	if m.filterDirty {
 		title += " (dirty only)"
 	}
-	header := sectionTitleStyle.Render(title) + " " + panelLabel("1", m.panelFocus == FocusRepos)
+	label := panelLabel("1", m.panelFocus == FocusRepos)
+	space := " "
+	labelW := lipgloss.Width(label)
+	maxTitleW := m.width
+	includeLabel := true
+	if labelW > 0 {
+		maxTitleW = m.width - labelW - 1
+		if maxTitleW < 1 {
+			includeLabel = false
+			maxTitleW = m.width
+		}
+	}
+	titlePlain := title
+	if lipgloss.Width(titlePlain) > maxTitleW {
+		titlePlain = truncate(titlePlain, maxTitleW)
+	}
+	headerTitle := sectionTitleStyle.Render(titlePlain)
+	header := headerTitle
+	if includeLabel {
+		header = headerTitle + space + label
+	}
 
 	status := m.statusMsg
 	if m.loading {
 		status = "Loading..."
 	}
 	if status == "" {
-		return sectionTitleStyle.Render(header)
+		return header
 	}
 
+	leftW := lipgloss.Width(header)
+	maxRight := m.width - leftW - 1
+	if maxRight < 4 {
+		return header
+	}
+	if lipgloss.Width(status) > maxRight {
+		status = truncate(status, maxRight)
+	}
 	right := footerStyle.Render(status)
-	rightW := lipgloss.Width(right)
-	maxLeft := m.width - rightW - 1
-	if maxLeft <= 0 {
-		return right
-	}
-	if lipgloss.Width(header) > maxLeft {
-		header = truncate(header, maxLeft)
-	}
-	gap := m.width - lipgloss.Width(header) - rightW
+	gap := m.width - leftW - lipgloss.Width(right)
 	if gap < 1 {
-		gap = 1
+		return header
 	}
 	return header + strings.Repeat(" ", gap) + right
 }
@@ -414,12 +440,9 @@ func (m Model) writePanelLines(b *strings.Builder, lines []string, contentMax in
 
 func (m Model) bottomPanelMaxLines() int {
 	repoLines := m.repoListLineCount()
-	maxLines := m.height - repoLines - 1
+	bodyMax := m.bodyMaxLines()
+	maxLines := bodyMax - repoLines - 1
 	if maxLines <= 0 {
-		return 0
-	}
-	maxLines-- // gap between panels
-	if maxLines < 0 {
 		return 0
 	}
 	return maxLines
@@ -430,7 +453,74 @@ func (m Model) repoListLineCount() int {
 	if len(repos) == 0 {
 		return 3
 	}
-	return 4 + len(repos)
+	return m.repoFixedLines() + m.repoWindowSize(len(repos))
+}
+
+func (m Model) repoFixedLines() int {
+	return 4
+}
+
+func (m Model) repoWindowSize(total int) int {
+	if total <= 0 {
+		return 0
+	}
+	start, end := m.repoWindow(total)
+	if end < start {
+		return 0
+	}
+	return end - start
+}
+
+func (m Model) repoWindow(total int) (start, end int) {
+	if total <= 0 {
+		return 0, 0
+	}
+	maxRows := m.maxRepoRows(total)
+	if maxRows <= 0 {
+		return 0, 0
+	}
+	start, end = branchWindow(total, m.cursor, maxRows)
+	return start, end
+}
+
+func (m Model) maxRepoRows(total int) int {
+	if total <= 0 {
+		return 0
+	}
+	fixed := m.repoFixedLines()
+	available := m.bodyMaxLines() - fixed
+	if available < 1 {
+		return 0
+	}
+	reserve := 4 // gap + min bottom panel lines (3)
+	maxRows := available
+	if available > reserve {
+		maxRows = available - reserve
+	}
+	if maxRows < 1 {
+		maxRows = 1
+	}
+	if maxRows > total {
+		maxRows = total
+	}
+	return maxRows
+}
+
+func (m Model) bodyMaxLines() int {
+	footerLines := m.footerLineCount()
+	bodyMax := m.height - footerLines
+	if bodyMax < 0 {
+		return 0
+	}
+	return bodyMax
+}
+
+func (m Model) footerLineCount() int {
+	footer := m.renderFooter()
+	if footer == "" {
+		return 0
+	}
+	return strings.Count(footer, "\n") + 1
 }
 
 func (m Model) renderBranchPicker() string {
@@ -706,12 +796,20 @@ func containsFooterToken(tokens []footerToken, target footerToken) bool {
 }
 
 func padToBottom(height int, body, footer string) string {
-	lines := strings.Split(body, "\n")
-	if height <= len(lines)+1 {
-		return "\n" + footer
+	bodyLines := lineCount(body)
+	footerLines := lineCount(footer)
+	if footer == "" {
+		footerLines = 0
 	}
-	gap := height - len(lines) - 1
-	return "\n" + strings.Repeat("\n", gap) + footer
+	gap := height - bodyLines - footerLines
+	if gap < 0 {
+		gap = 0
+	}
+	sep := ""
+	if body != "" && !strings.HasSuffix(body, "\n") {
+		sep = "\n"
+	}
+	return sep + strings.Repeat("\n", gap) + footer
 }
 
 func padRight(s string, width int) string {
@@ -740,6 +838,13 @@ func truncatePath(path string, maxW int) string {
 		return path[len(path)-maxW:]
 	}
 	return "…" + path[len(path)-maxW+1:]
+}
+
+func lineCount(s string) int {
+	if s == "" {
+		return 0
+	}
+	return strings.Count(s, "\n") + 1
 }
 
 func min(a, b int) int {

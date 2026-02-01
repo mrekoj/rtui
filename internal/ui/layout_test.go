@@ -118,3 +118,48 @@ func TestBottomPanelHeightStable(t *testing.T) {
 		t.Fatalf("expected graph panel lines %d, got %d", maxLines, got)
 	}
 }
+
+func TestRepoHeaderKeepsTitleWhenStatusLong(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.width = 30
+	m.statusMsg = "Loading branches..."
+	out := m.renderRepoSectionHeader()
+	if !strings.Contains(out, "REPOSITORIES") {
+		t.Fatalf("expected header to include title, got %q", out)
+	}
+}
+
+func TestRepoHeaderDropsStatusWhenTight(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.width = 16
+	m.statusMsg = "Loading branches..."
+	out := m.renderRepoSectionHeader()
+	if !strings.Contains(out, "REPOSITORIES") {
+		t.Fatalf("expected header to include title, got %q", out)
+	}
+	if strings.Contains(out, "Loading") {
+		t.Fatalf("expected status to drop at tight width, got %q", out)
+	}
+}
+
+func TestRepoWindowLimitsRowsWhenManyRepos(t *testing.T) {
+	m := NewModel(config.DefaultConfig())
+	m.width = 60
+	m.height = 10
+	m.repos = make([]git.Repo, 20)
+
+	_, end := m.repoWindow(len(m.repos))
+	if end >= len(m.repos) {
+		t.Fatalf("expected repo window to be smaller than total, got end=%d total=%d", end, len(m.repos))
+	}
+}
+
+func TestPadToBottomDoesNotDropHeaderLine(t *testing.T) {
+	body := "HEADER\nSTATUS\nline1\nline2\n"
+	footer := "footer"
+	out := body + padToBottom(5, body, footer)
+	lines := strings.Split(out, "\n")
+	if len(lines) < 2 || lines[0] != "HEADER" {
+		t.Fatalf("expected header preserved, got %q", out)
+	}
+}

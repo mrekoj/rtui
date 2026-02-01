@@ -92,6 +92,7 @@ Tests should create and clean fixtures automatically.
 ## 5. Manual Smoke (minimum)
 
 - Navigate list with `j/k` at width 45 cols.
+- Long repo list: ensure header stays visible and list scrolls as selection moves.
 - Add a path using `a`, verify centered modal (~70% width), config update, and rescan.
 - Commit flow: open commit input, enter message, verify status update.
 - Toggle dirty-only filter.
