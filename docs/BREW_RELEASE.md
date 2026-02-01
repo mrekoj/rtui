@@ -83,8 +83,63 @@ brew install rtui
 rtui -h
 ```
 
-## Update for a new version
-- Bump tag: v0.1.1
-- Rebuild binaries and new tar.gz files
-- Update checksums in formula
-- Commit and push tap
+## Update version (repeatable)
+
+### 1) Pick version
+```bash
+VERSION=0.1.1
+TAG="v${VERSION}"
+```
+
+### 2) Tag and push
+```bash
+git tag -a "$TAG" -m "$TAG"
+git push origin "$TAG"
+```
+
+### 3) Build macOS binaries
+```bash
+rm -rf dist
+mkdir -p dist
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o dist/rtui-darwin-arm64 ./cmd/rtui
+CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o dist/rtui-darwin-amd64 ./cmd/rtui
+```
+
+### 4) Package and checksum
+```bash
+cd dist
+tar -czf rtui_darwin_arm64.tar.gz rtui-darwin-arm64
+tar -czf rtui_darwin_amd64.tar.gz rtui-darwin-amd64
+shasum -a 256 rtui_darwin_arm64.tar.gz rtui_darwin_amd64.tar.gz
+```
+
+### 5) Create GitHub release
+```bash
+gh release create "$TAG" \
+  dist/rtui_darwin_arm64.tar.gz \
+  dist/rtui_darwin_amd64.tar.gz \
+  -t "$TAG" -n "RTUI $TAG"
+```
+
+### 6) Update Homebrew formula
+Edit `Formula/rtui.rb`:
+- Bump `version` to `VERSION`
+- Update both `url` entries to the new tag
+- Replace `sha256` values with the new checksums
+
+Commit and push:
+```bash
+cd ../homebrew-rtui
+git add Formula/rtui.rb
+git commit -m "Bump rtui to $TAG"
+git push
+```
+
+### 7) Verify install
+```bash
+brew update
+brew upgrade rtui
+rtui -h
+```
+
+*Last updated: February 1, 2026*
