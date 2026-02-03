@@ -229,7 +229,7 @@ func TestOpenSettingsKey(t *testing.T) {
 	if cmd == nil {
 		t.Fatal("expected settings cmd")
 	}
-	if m.statusMsg != "Opening settings in VS Code..." {
+	if m.statusMsg != "Opening settings in editor..." {
 		t.Fatalf("unexpected status: %q", m.statusMsg)
 	}
 }

@@ -603,7 +603,7 @@ Actions
   c       Commit (stages all)
   b       Switch branch
   o       Open in editor
-  s       Settings (open config in VS Code)
+  s       Settings (open config in editor)
   p       Pull
   P       Push
   f       Fetch all

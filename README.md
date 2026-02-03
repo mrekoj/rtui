@@ -37,6 +37,7 @@ paths = [
 ]
 
 editor = "code"
+editor_args = ["--profile", "Minimalist"]
 refresh_interval = 0
 show_clean = true
 scan_depth = 1
@@ -59,7 +60,7 @@ Actions
 - `f`: fetch
 - `r`: refresh
 - `o`: open repo in editor
-- `s`: open config in VS Code
+- `s`: open config in editor
 - `?`: help
 - `q`: quit
 

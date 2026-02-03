@@ -185,17 +185,17 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "o":
 		if repo := m.currentRepo(); repo != nil {
-			_ = git.OpenInEditor(repo.Path, m.config.Editor)
-			m = m.setStatusInfo("Opened " + repo.Name + " in " + m.config.Editor)
+			_ = git.OpenInEditor(repo.Path, m.config.Editor, m.config.EditorArgs)
+			m = m.setStatusInfo("Opened " + repo.Name + " in editor")
 		}
 	case "s":
 		path := config.ConfigPath()
-		m = m.setStatusInfo("Opening settings in VS Code...")
+		m = m.setStatusInfo("Opening settings in editor...")
 		return m, func() tea.Msg {
-			if err := git.OpenInEditor(path, "code"); err != nil {
+			if err := git.OpenInEditor(path, m.config.Editor, m.config.EditorArgs); err != nil {
 				return errMsg(err)
 			}
-			return statusMsg("Opened settings in VS Code")
+			return statusMsg("Opened settings in editor")
 		}
 	case "f":
 		if repo := m.currentRepo(); repo != nil {

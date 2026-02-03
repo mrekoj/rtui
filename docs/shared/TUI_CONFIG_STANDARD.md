@@ -9,6 +9,7 @@ Format:
 Common keys:
 - paths: array of strings (folders to scan)
 - editor: command string (used by open action)
+- editor_args: array of strings (extra editor args)
 - refresh_interval: int seconds (0 disables polling)
 - show_clean: bool (list clean items)
 - scan_depth: int (directory depth)
@@ -25,8 +26,9 @@ paths = [
   "~/SourceCode/Personal",
 ]
 editor = "code"
+editor_args = ["--profile", "Minimalist"]
 refresh_interval = 0
 show_clean = true
 scan_depth = 1
 
-*Last updated: January 30, 2026*
+*Last updated: February 3, 2026*

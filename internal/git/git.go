@@ -215,8 +215,10 @@ func StashPush(path string) error {
 	return cmd.Run()
 }
 
-func OpenInEditor(path, editor string) error {
-	cmd := exec.Command(editor, path)
+func OpenInEditor(path, editor string, editorArgs []string) error {
+	args := append([]string{}, editorArgs...)
+	args = append(args, path)
+	cmd := exec.Command(editor, args...)
 	return cmd.Start()
 }
 

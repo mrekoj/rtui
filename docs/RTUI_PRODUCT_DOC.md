@@ -221,6 +221,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 |-------|---------|---------|
 | paths | Folders to scan for repos | empty (falls back to CWD) |
 | editor | Command to open repo | "code" |
+| editor_args | Arguments for editor command | ["--profile", "Minimalist"] |
 | refresh_interval | Reserved for future polling (unused in watcher-only). | 0 |
 | show_clean | Show clean repos | true |
 | scan_depth | Max depth under each path | 1 |
@@ -299,7 +300,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Push: `P` pushes current repo; blocked if dirty or behind; after push, auto-refresh
 - Add path: `a` opens input; append path, rescan
 - Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` switch focus
-- Settings: `s` opens the config file in VS Code
+- Settings: `s` opens the config file in the configured editor
 
 ### Auto-refresh (watcher-only)
 
@@ -571,7 +572,7 @@ git stash push -u
 | `b` | Switch branch (picker) | Normal |
 | `c` | Commit (stages all) | Normal |
 | `o` | Open repo in editor | Normal |
-| `s` | Open settings (config.toml) in VS Code | Normal |
+| `s` | Open settings (config.toml) in editor | Normal |
 | `p` | Pull | Normal |
 | `P` | Push | Normal |
 | `f` | Fetch all remotes | Normal |
@@ -599,7 +600,7 @@ git stash push -u
 
 **Location:** `~/.config/rtui/config.toml`
 
-Tip: Press `s` to open the config file in VS Code.
+Tip: Press `s` to open the config file in your editor.
 
 Config keys:
 
@@ -607,6 +608,7 @@ Config keys:
 |-----|------|---------|-------|
 | `paths` | array[string] | empty | Folders to scan; supports `~` expansion; saved as multi-line TOML array |
 | `editor` | string | `$EDITOR` or `code` | Editor command used by `o` and `s` |
+| `editor_args` | array[string] | `["--profile", "Minimalist"]` | Arguments passed before path |
 | `refresh_interval` | int | 30 | Reserved for polling mode; set `0` in watcher-only |
 | `show_clean` | bool | true | Show clean repos in list |
 | `scan_depth` | int | 1 | Max depth under each path |
@@ -614,6 +616,7 @@ Config keys:
 Notes:
 - If the config file is missing or `paths` is empty, RTUI scans the current working directory (CWD) and shows a banner with the path.
 - The UI `a` (add path) appends a normalized path to `paths` and writes the config file. Path must exist; duplicates are ignored.
+- Default `editor_args` sets VS Code profile `Minimalist`. Clear or override to use the default profile.
 - For a sample TOML file and shared config conventions, see `docs/shared/TUI_CONFIG_STANDARD.md`.
 
 ---
@@ -892,4 +895,4 @@ Total: ~950 lines of Go code
 
 ---
 
-*Last updated: January 31, 2026*
+*Last updated: February 3, 2026*

@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Paths           []string `toml:"paths"`
 	Editor          string   `toml:"editor"`
+	EditorArgs      []string `toml:"editor_args"`
 	RefreshInterval int      `toml:"refresh_interval"`
 	ShowClean       bool     `toml:"show_clean"`
 	ScanDepth       int      `toml:"scan_depth"`
@@ -22,6 +23,7 @@ func DefaultConfig() Config {
 	return Config{
 		Paths:           []string{},
 		Editor:          getDefaultEditor(),
+		EditorArgs:      []string{"--profile", "Minimalist"},
 		RefreshInterval: 30,
 		ShowClean:       true,
 		ScanDepth:       1,
@@ -124,6 +126,19 @@ func formatConfig(cfg Config) string {
 	b.WriteString("editor = ")
 	b.WriteString(strconv.Quote(cfg.Editor))
 	b.WriteString("\n")
+	b.WriteString("editor_args = ")
+	if len(cfg.EditorArgs) == 0 {
+		b.WriteString("[]\n")
+	} else {
+		b.WriteString("[")
+		for i, arg := range cfg.EditorArgs {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(strconv.Quote(arg))
+		}
+		b.WriteString("]\n")
+	}
 	b.WriteString("refresh_interval = ")
 	b.WriteString(strconv.Itoa(cfg.RefreshInterval))
 	b.WriteString("\n")
