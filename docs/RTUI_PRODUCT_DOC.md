@@ -50,11 +50,11 @@ A single TUI dashboard that:
 
 | Software | Version | Installation | Documentation |
 |----------|---------|--------------|---------------|
-| [Go](https://go.dev/) | 1.21+ | [Install Guide](https://go.dev/doc/install) | [Go Docs](https://go.dev/doc/) |
+| [Go](https://go.dev/) | 1.25.6+ | [Install Guide](https://go.dev/doc/install) | [Go Docs](https://go.dev/doc/) |
 | [Git](https://git-scm.com/) | 2.0+ | Usually pre-installed | [Git Book](https://git-scm.com/book/en/v2) |
 
 ```bash
-# Check Go installation (requires Go 1.21+)
+# Check Go installation (requires Go 1.25.6+)
 go version
 
 # If not installed (macOS)

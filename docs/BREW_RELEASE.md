@@ -63,7 +63,7 @@ class Rtui < Formula
   end
 
   test do
-    system "#{bin}/rtui", "-h"
+    assert_predicate bin/"rtui", :exist?
   end
 end
 ```
@@ -80,7 +80,7 @@ git push
 ```bash
 brew tap mrekoj/rtui
 brew install rtui
-rtui -h
+rtui   # interactive TUI; press q to quit
 ```
 
 ## Update version (repeatable)
@@ -139,7 +139,7 @@ git push
 ```bash
 brew update
 brew upgrade rtui
-rtui -h
+rtui   # interactive TUI; press q to quit
 ```
 
-*Last updated: February 1, 2026*
+*Last updated: February 19, 2026*

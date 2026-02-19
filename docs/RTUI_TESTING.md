@@ -104,8 +104,10 @@ Tests should create and clean fixtures automatically.
 - Pull/push: `p` pulls clean repo, `P` pushes when not behind; status updates.
 - Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` focus panels; `j/k` scrolls focused panel.
 - Tab only toggles when bottom panel is focused (`2`); switching views does not shift layout height.
-- Settings: press `s` and verify config file opens in VS Code.
-- Verify watcher: modify a file in a watched repo and confirm status updates within ~500ms.
+- Settings: press `s` and verify config file opens in the configured editor.
+- Verify watcher/refresh:
+  - git metadata change (for example `git add` or checkout) updates quickly (debounced ~500ms),
+  - unstaged file edits may require periodic refresh (`refresh_interval`, default 30s) or manual `r`.
 - Status messages: info clears after ~5s; errors persist until next key.
 
 ## 6. Responsive Checks (right panel)
@@ -116,4 +118,4 @@ Tests should create and clean fixtures automatically.
 - 80x25: normal layout.
 - Footer action bar never overflows the width; wraps to two lines when needed.
 
-*Last updated: January 31, 2026*
+*Last updated: February 19, 2026*

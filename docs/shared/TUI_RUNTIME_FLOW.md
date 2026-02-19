@@ -16,8 +16,8 @@ Component map (typical):
 |----------|------|---------|
 | Event loop | process input, dispatch updates | Bubble Tea |
 | State model | in-memory app state | Go structs |
-| IO layer | git, fs, config | go-git + git CLI + fsnotify + TOML |
+| IO layer | git, fs, config | git CLI + fsnotify + TOML |
 | Layout | spacing, borders, align | Lip Gloss |
 | Rendering | string output | Bubble Tea view |
 
-*Last updated: January 30, 2026*
+*Last updated: February 19, 2026*
