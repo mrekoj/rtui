@@ -42,6 +42,7 @@ type Manager struct {
 	done     chan struct{}
 	mu       sync.Mutex
 	repos    []string
+	watched  map[string]struct{}
 	debounce map[string]*time.Timer
 	closed   bool
 }
@@ -64,6 +65,7 @@ func NewManager(cfg Config) (*Manager, error) {
 		events:   make(chan Event, 64),
 		errors:   make(chan error, 8),
 		done:     make(chan struct{}),
+		watched:  map[string]struct{}{},
 		debounce: map[string]*time.Timer{},
 	}
 	return m, nil
@@ -120,7 +122,7 @@ func (m *Manager) AddRepo(path string) error {
 	m.repos = append(m.repos, root)
 	m.mu.Unlock()
 
-	if err := m.addRecursive(root); err != nil {
+	if err := m.addRoot(root); err != nil {
 		return err
 	}
 	if err := m.watchGitMeta(root); err != nil {
@@ -138,6 +140,9 @@ func (m *Manager) loop() {
 			if !ok {
 				return
 			}
+			if isIgnorableWatchError(err) {
+				continue
+			}
 			m.sendError(err)
 		case ev, ok := <-m.watcher.Events:
 			if !ok {
@@ -152,12 +157,6 @@ func (m *Manager) handleEvent(ev fsnotify.Event) {
 	path := filepath.Clean(ev.Name)
 	if m.cfg.Ignore != nil && m.cfg.Ignore(path) {
 		return
-	}
-
-	if ev.Op&fsnotify.Create == fsnotify.Create {
-		if isDir(path) && !shouldSkipDir(path) {
-			_ = m.watcher.Add(path)
-		}
 	}
 
 	repo, ok := repoForPath(path, m.reposSnapshot())
@@ -192,35 +191,24 @@ func (m *Manager) sendError(err error) {
 	}
 }
 
-func (m *Manager) addRecursive(root string) error {
-	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !d.IsDir() {
-			return nil
-		}
-		if shouldSkipDir(path) {
-			return filepath.SkipDir
-		}
-		if m.cfg.Ignore != nil && m.cfg.Ignore(path) {
-			return filepath.SkipDir
-		}
-		return m.watcher.Add(path)
-	})
+func (m *Manager) addRoot(root string) error {
+	if m.cfg.Ignore != nil && m.cfg.Ignore(root) {
+		return nil
+	}
+	return m.addWatch(root)
 }
 
 func (m *Manager) watchGitMeta(root string) error {
 	indexPath := filepath.Join(root, ".git", "index")
 	if fileExists(indexPath) {
-		if err := m.watcher.Add(indexPath); err != nil {
+		if err := m.addWatch(indexPath); err != nil {
 			return err
 		}
 	}
 	if m.cfg.WatchHead {
 		headPath := filepath.Join(root, ".git", "HEAD")
 		if fileExists(headPath) {
-			if err := m.watcher.Add(headPath); err != nil {
+			if err := m.addWatch(headPath); err != nil {
 				return err
 			}
 		}
@@ -250,20 +238,41 @@ func repoForPath(path string, repos []string) (string, bool) {
 	return "", false
 }
 
-func shouldSkipDir(path string) bool {
-	base := filepath.Base(path)
-	return base == ".git" || base == ".hg" || base == ".svn"
-}
-
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-func isDir(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
+func isIgnorableWatchError(err error) bool {
+	return errors.Is(err, os.ErrNotExist)
+}
+
+func (m *Manager) addWatch(path string) error {
+	cleanPath := filepath.Clean(path)
+
+	m.mu.Lock()
+	if m.closed {
+		m.mu.Unlock()
+		return nil
 	}
-	return info.IsDir()
+	if _, ok := m.watched[cleanPath]; ok {
+		m.mu.Unlock()
+		return nil
+	}
+	m.mu.Unlock()
+
+	if err := m.watcher.Add(cleanPath); err != nil {
+		if isIgnorableWatchError(err) {
+			return nil
+		}
+		return err
+	}
+
+	m.mu.Lock()
+	if !m.closed {
+		m.watched[cleanPath] = struct{}{}
+	}
+	m.mu.Unlock()
+
+	return nil
 }

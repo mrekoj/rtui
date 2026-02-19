@@ -53,6 +53,7 @@ type commitDoneMsg string
 type pushDoneMsg string
 type watchEventMsg watch.Event
 type watchErrMsg error
+type refreshTickMsg struct{}
 type branchesLoadedMsg struct {
 	items   []BranchItem
 	current string
@@ -89,12 +90,12 @@ const (
 
 func NewModel(cfg config.Config) Model {
 	return Model{
-		config:      cfg,
-		cursor:      0,
-		mode:        ModeNormal,
-		panelFocus:  FocusRepos,
-		bottomView:  BottomChanges,
-		branchTab:   BranchTabLocal,
+		config:        cfg,
+		cursor:        0,
+		mode:          ModeNormal,
+		panelFocus:    FocusRepos,
+		bottomView:    BottomChanges,
+		branchTab:     BranchTabLocal,
 		changesScroll: 0,
 		graphScroll:   0,
 		statusKind:    StatusInfo,
@@ -105,6 +106,7 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.loadRepos(),
 		startWatcherCmd(),
+		m.refreshTickCmd(),
 		m.statusTickCmd(),
 	)
 }

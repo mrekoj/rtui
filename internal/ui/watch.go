@@ -17,6 +17,8 @@ type repoUpdatedMsg struct {
 	repo git.Repo
 }
 
+const defaultRefreshInterval = 30 * time.Second
+
 func startWatcherCmd() tea.Cmd {
 	return func() tea.Msg {
 		cfg := watch.Config{
@@ -30,6 +32,20 @@ func startWatcherCmd() tea.Cmd {
 		manager.Start()
 		return watchStartedMsg{manager: manager}
 	}
+}
+
+func (m Model) refreshInterval() time.Duration {
+	if m.config.RefreshInterval <= 0 {
+		return defaultRefreshInterval
+	}
+	return time.Duration(m.config.RefreshInterval) * time.Second
+}
+
+func (m Model) refreshTickCmd() tea.Cmd {
+	interval := m.refreshInterval()
+	return tea.Tick(interval, func(time.Time) tea.Msg {
+		return refreshTickMsg{}
+	})
 }
 
 func (m Model) watchEventsCmd() tea.Cmd {

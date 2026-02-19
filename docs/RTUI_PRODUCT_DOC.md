@@ -222,7 +222,7 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 | paths | Folders to scan for repos | empty (falls back to CWD) |
 | editor | Command to open repo | "code" |
 | editor_args | Arguments for editor command | ["--profile", "Minimalist"] |
-| refresh_interval | Reserved for future polling (unused in watcher-only). | 0 |
+| refresh_interval | Periodic full refresh interval in seconds (fallback to 30 when <=0). | 30 |
 | show_clean | Show clean repos | true |
 | scan_depth | Max depth under each path | 1 |
 
@@ -293,7 +293,8 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 
 - Startup: load config -> scan repos -> render list
 - Refresh: `r` triggers rescan and updates header status
-- Auto-refresh (watcher-only): file events trigger per-repo refresh after 500ms debounce
+- Auto-refresh: git-focused watcher events trigger per-repo refresh after 500ms debounce
+- Periodic refresh: full rescan every `refresh_interval` seconds (default 30; `<=0` falls back to 30)
 - Commit: `c` opens commit input; commit auto-stages all
 - Branch switch: `b` opens picker; select branch and switch; remote creates tracking
 - Pull: `p` pulls current repo; blocked if repo is dirty; after pull, auto-refresh
@@ -302,12 +303,14 @@ RTUI follows this loop with a small state machine (modes) and a single render fu
 - Bottom panel: `Tab` toggles CHANGES/GRAPH; `1`/`2` switch focus
 - Settings: `s` opens the config file in the configured editor
 
-### Auto-refresh (watcher-only)
+### Auto-refresh
 
 - Watch scope: repo root + `.git/index` + `.git/HEAD`
 - Debounce: 500ms per repo (coalesce rapid changes)
-- No polling; manual refresh (`r`) remains available
-- On watcher error: show header status and rely on manual refresh
+- Ignore high-churn paths (for example `target`, `node_modules`, `dist`, `build`, `.cache`)
+- Periodic full refresh uses `refresh_interval` seconds (default 30; `<=0` falls back to 30)
+- Manual refresh (`r`) remains available
+- On watcher error: show header status warning; periodic/manual refresh still recover state
 
 
 ---
@@ -609,7 +612,7 @@ Config keys:
 | `paths` | array[string] | empty | Folders to scan; supports `~` expansion; saved as multi-line TOML array |
 | `editor` | string | `$EDITOR` or `code` | Editor command used by `o` and `s` |
 | `editor_args` | array[string] | `["--profile", "Minimalist"]` | Arguments passed before path |
-| `refresh_interval` | int | 30 | Reserved for polling mode; set `0` in watcher-only |
+| `refresh_interval` | int | 30 | Background full refresh interval (seconds); values `<=0` fall back to `30` |
 | `show_clean` | bool | true | Show clean repos in list |
 | `scan_depth` | int | 1 | Max depth under each path |
 
@@ -660,7 +663,7 @@ Use ANSI color IDs from the table; keep base text neutral and reserve bright col
 | Push blocked (dirty/behind/conflict) | Show status message; no action |
 | Pull fails | Show error message in header status line |
 | Push fails | Show error message in header status line |
-| Watcher error | Show status warning, rely on manual refresh |
+| Watcher error | Show status warning; periodic/manual refresh continue to recover |
 | Graph load fails | Show status message, keep current view |
 | Branch switch fails | Show error message, stay on current branch |
 | Stash fails | Show error, keep picker open |
@@ -895,4 +898,4 @@ Total: ~950 lines of Go code
 
 ---
 
-*Last updated: February 3, 2026*
+*Last updated: February 19, 2026*

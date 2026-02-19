@@ -44,6 +44,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case watchErrMsg:
 		m = m.setStatusError("Watcher error: " + msg.Error())
 		return m, m.watchErrorsCmd()
+	case refreshTickMsg:
+		return m, tea.Batch(
+			m.loadRepos(),
+			m.refreshTickCmd(),
+		)
 	case repoUpdatedMsg:
 		m.applyRepoUpdate(msg.repo)
 		if strings.HasPrefix(m.statusMsg, "Switching") || strings.HasPrefix(m.statusMsg, "Stashing") {

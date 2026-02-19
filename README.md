@@ -38,7 +38,7 @@ paths = [
 
 editor = "code"
 editor_args = ["--profile", "Minimalist"]
-refresh_interval = 0
+refresh_interval = 30
 show_clean = true
 scan_depth = 1
 ```
@@ -65,7 +65,9 @@ Actions
 - `q`: quit
 
 ## Notes
-- Auto-refresh uses file watcher (fsnotify). Manual `r` still available.
+- Auto-refresh uses git-focused file watcher events plus periodic full refresh.
+- `refresh_interval` is seconds; values `<= 0` fall back to `30`.
+- Manual `r` refresh is always available.
 - Push is blocked if repo is dirty or behind; pull is blocked if dirty.
 
 ## Docs

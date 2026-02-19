@@ -10,7 +10,7 @@ Common keys:
 - paths: array of strings (folders to scan)
 - editor: command string (used by open action)
 - editor_args: array of strings (extra editor args)
-- refresh_interval: int seconds (0 disables polling)
+- refresh_interval: int seconds (background refresh interval; <=0 falls back to default)
 - show_clean: bool (list clean items)
 - scan_depth: int (directory depth)
 
@@ -27,8 +27,8 @@ paths = [
 ]
 editor = "code"
 editor_args = ["--profile", "Minimalist"]
-refresh_interval = 0
+refresh_interval = 30
 show_clean = true
 scan_depth = 1
 
-*Last updated: February 3, 2026*
+*Last updated: February 19, 2026*
