@@ -12,8 +12,16 @@ Release steps (generic):
 5. Update package manager formulas (Homebrew, etc.)
 
 Homebrew (summary):
-- Create tap repo: <user>/homebrew-<app>
+- Shared tap repo: `mrekoj/homebrew-tap` (`brew tap mrekoj/tap`)
+- All formulas live in `Formula/` in that single repo
 - Add formula with version + SHA256 per asset
-- Test: brew install <user>/<tap>/<formula>
+- Install: `brew install mrekoj/tap/<formula>`
+- Layout:
+  ```
+  homebrew-tap/
+  └── Formula/
+      ├── rtui.rb
+      └── voicepill.rb
+  ```
 
-*Last updated: January 30, 2026*
+*Last updated: February 23, 2026*
